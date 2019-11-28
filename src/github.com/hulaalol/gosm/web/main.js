@@ -1,12 +1,13 @@
 
-var mutex = false;
+
 
 var markerSet = false;
 var marker1;
 var marker2;
 
-var autoUpdate = false;
+//var autoUpdate = false;
 var mode;
+var metric;
 var mymap;
 
 
@@ -31,8 +32,7 @@ function clearMap(m) {
 
 async function initMap(map){
 
-    mutex = true
-    //clearMap(map)
+    activateLoader();
     // lock map
     document.getElementById("mapid").setAttribute("class", "locked");
 
@@ -66,8 +66,8 @@ async function initMap(map){
 
             //unlock map
             document.getElementById("mapid").setAttribute("class", "unlocked");
-            mutex = false
-            toggleMapUpdate()
+            //toggleMapUpdate()
+            deactivateLoader();
             resolve(1)
         }
         }
@@ -88,8 +88,7 @@ async function initMap(map){
 
 async function updateMap(map, bounds, zoomLevel){
 
-    mutex = true
-
+    activateLoader();
     //clearMap(map)
     // lock map
     document.getElementById("mapid").setAttribute("class", "locked");
@@ -125,10 +124,10 @@ async function updateMap(map, bounds, zoomLevel){
 
             map.invalidateSize()
             console.log("finished updating edges on map!")
-            mutex = false
 
             //unlock map
             document.getElementById("mapid").setAttribute("class", "unlocked");
+            deactivateLoader();
             resolve(1)
         }
         }
@@ -168,6 +167,10 @@ $(document).ready(function(){
     mymap = L.map('mapid',{renderer: L.canvas()}).setView(Stuttgart, 15);
 
 
+    selectCar();
+    selectDistance();
+    
+
     //mymap.on("moveend", async function () {
     mymap.on("moveend", async function () {
 
@@ -182,21 +185,18 @@ $(document).ready(function(){
             return
         }
 
-        if(autoUpdate && !hideGraph){
+        //if(autoUpdate && !hideGraph){
+        if(!graphHidden){
+
             var bounds = mymap.getBounds()
             //var loc = mymap.getCenter();
             //console.log(loc.toString());
-    
-            if(!mutex){
-                await updateMap(mymap, bounds, mymap.getZoom())
-    
-            }else{
-                console.log("skipped update")
-            }
+            await updateMap(mymap, bounds, mymap.getZoom())
             console.log("fire update edges")
         }else{
             console.log("auto update is off")
         }
+
 
       });
 
@@ -245,7 +245,7 @@ $(document).ready(function(){
     })
 
     mymap.on('zoomend', function() {
-        console.log("set current zoom to: "+mymap.getZoom())
+        //console.log("set current zoom to: "+mymap.getZoom())
     });
 
 
@@ -271,6 +271,7 @@ $(document).ready(function(){
 
 
 function sendMarker(marker,type){
+    activateLoader();
     var xhr = new XMLHttpRequest();
     var url = "/marker";
     xhr.open("POST", url, true);
@@ -278,13 +279,27 @@ function sendMarker(marker,type){
     
     xhr.onreadystatechange = function () {
     if (xhr.readyState === 4 && xhr.status === 200) {
-        // no need to react on response
+
+        var json = JSON.parse(xhr.responseText);
+        var newLatLng = new L.LatLng(json.Lat, json.Lon);
+    
+        if(json.Name == "start"){
+            marker1.setLatLng(newLatLng); 
+        }
+        if(json.Name == "finish"){
+            marker2.setLatLng(newLatLng); 
+        }
+
+        console.log("handled marker request :)");
+        deactivateLoader();
+
     }
     }
     var lat = marker.getLatLng().lat
     var lon = marker.getLatLng().lng 
     var data = JSON.stringify({"do": "setMarker",
                                 "type" : type,
+                                "mode" : mode,
                                 "lat": lat,
                                 "lon": lon });
     
@@ -304,9 +319,7 @@ function sendMarker(marker,type){
 
 
 function calcRoute(){
-
-
-
+    activateLoader();
     console.log("map cleaned...")
 
 
@@ -336,32 +349,88 @@ function calcRoute(){
 
             var json = JSON.parse(xhr.responseText);
 
-            var pl = []
-            for (i = 0; i < json.Data.length; i++) {
-                var edge = json.Data[i].C
-                pl.push([[edge[0], edge[1]], [edge[2], edge[3]]])
+
+            if(json.Distance == 0){
+                document.getElementById("routeinfo").innerHTML = "Ops! Couldn't find way?! Check if the markers are placed in a lake, shopping centre or military base :)";
+
+            }else{
+                var pl = []
+                for (i = 0; i < json.Data.length; i++) {
+                    var edge = json.Data[i].C
+                    pl.push([[edge[0], edge[1]], [edge[2], edge[3]]])
+                }
+    
+                var polyline = L.polyline(pl, {color: "red", interactive: false})
+    
+                polyline.id = "path"
+                polyline.addTo(mymap);
+    
+                mymap.invalidateSize()
+    
+                //update textbox
+                if(metric == "distance"){
+    
+                    if(json.Distance > 1000){
+                        var km = (json.Distance/1000).toFixed(2);
+                        var t = km+"km"
+                    }else{
+                        var t= json.Distance+"m"
+                    }
+                    var text = "Found path for "+mode+" with a distance of "+t;
+                }
+    
+                if(metric == "time"){
+    
+                    if(mode!= "car"){
+                        if(mode=="bike"){
+                            speed = 15;
+                        }else if(mode=="pedestrian"){
+                            speed = 5;
+                        }
+                        time = 3600 / ((speed*1000) / json.Distance);
+                    }else{
+                        time = json.Distance;
+                    }
+    
+    
+                        var t = time+" seconds"
+                        if(time > 60){
+                            // give minutes
+                            var t = Math.floor(time/60)+" minutes and "+Math.floor(time%60)+" seconds"
+                        }
+        
+                        if (time > 3600){
+                            // give hours
+                            var t = Math.floor(time/3600)+" hours and "+Math.floor(time%60)+" minutes"
+                        }
+    
+                    var text = "Found path for "+mode+" with a traveltime of "+t;
+                }
+    
+                document.getElementById("routeinfo").innerHTML = text;
+    
+    
+    
+    
+                console.log("finished calculating shortest path...")
             }
 
-            var polyline = L.polyline(pl, {color: "red", interactive: false})
-
-            polyline.id = "path"
-            polyline.addTo(mymap);
-
-
-            mymap.invalidateSize()
-            console.log("finished calculating shortest path...")
+           
 
             //unlock map
             document.getElementById("mapid").setAttribute("class", "unlocked");
+            deactivateLoader();
             resolve(1)
         }
         }
 
     
     
-        var data = JSON.stringify({"do": "dijkstra", "mode": mode,
-                                    "startLat": marker1.getLatLng().lat, "startLon": marker1.getLatLng().lng,
-                                    "targetLat": marker2.getLatLng().lat, "targetLon": marker2.getLatLng().lng});
+        //var data = JSON.stringify({"do": "dijkstra", "mode": mode,
+          //                          "startLat": marker1.getLatLng().lat, "startLon": marker1.getLatLng().lng,
+            //                        "targetLat": marker2.getLatLng().lat, "targetLon": marker2.getLatLng().lng});
+
+        var data = JSON.stringify({"do": "dijkstra", "mode": mode, "metric": metric});
     
         console.log("sending json request to server: "+data)
         xhr.send(data);
@@ -396,15 +465,37 @@ function selectCar(){
 
 }
 
-function toggleMapUpdate(){
-    if(autoUpdate){
-        document.getElementById("autoupdate").setAttribute("class", "deactivatedBtn");
-        autoUpdate = false;
-    }else{
-        document.getElementById("autoupdate").setAttribute("class", "activatedBtn");
-        updateMap(mymap, mymap.getBounds(), mymap.getZoom())
-        autoUpdate = true;
-    }
+function selectDistance(){
+    metric = "distance"
+    document.getElementById("time").setAttribute("class", "deactivatedBtn");
+    document.getElementById("distance").setAttribute("class", "activatedBtn");
+}
+
+function selectTime(){
+    metric = "time"
+    document.getElementById("time").setAttribute("class", "activatedBtn");
+    document.getElementById("distance").setAttribute("class", "deactivatedBtn");
+}
+
+
+//function toggleMapUpdate(){
+//    if(autoUpdate){
+//        document.getElementById("autoupdate").setAttribute("class", "deactivatedBtn");
+//        autoUpdate = false;
+//    }else{
+//        document.getElementById("autoupdate").setAttribute("class", "activatedBtn");
+//        updateMap(mymap, mymap.getBounds(), mymap.getZoom())
+//        autoUpdate = true;
+//    }
+//}
+
+
+function activateLoader(){
+    document.getElementById("loader").style.visibility = "visible";
+}
+
+function deactivateLoader(){
+    document.getElementById("loader").style.visibility = "hidden";
 }
 
 function hideGraph(){
@@ -415,7 +506,8 @@ if(!graphHidden){
             mymap.removeLayer(layer);
         }
     });
-    document.getElementById("hideGraph").innerHTML = "Show street graph";
+    document.getElementById("hideGraph").innerHTML = "Show graph";
+    //document.getElementById("hideGraph").style.background='#17fc03';
     graphHidden = true
 
 }else{
@@ -426,12 +518,10 @@ if(!graphHidden){
         initMap(mymap)
     }
     
-    document.getElementById("hideGraph").innerHTML = "Hide street graph";
+    document.getElementById("hideGraph").innerHTML = "Hide graph";
+    //document.getElementById("hideGraph").style.background='#4f4f4f';
     graphHidden = false;
 }
-
-
-    mymap.removeLayer(marker1)
 }
 
 // click handler functions

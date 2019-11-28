@@ -10,8 +10,10 @@ body{
 
 .locked{
   pointer-events: none;
+  display: block;
 }
 .unlocked{
+  display: block;
   
 }
 
@@ -25,7 +27,19 @@ body{
 
 }
 
-.btn-group button {
+#routeinfo {
+  display: block;
+  background-color: rgb(95, 95, 95); /* Green background */
+  border: 1px solid rgb(0, 0, 0); /* Green border */
+  color: white; /* White text */
+  width: 800px; 
+  height: 50px;
+  font-size: large;
+  font-weight: bold;
+  text-align: center;
+}
+
+.btn-group button  {
     background-color: rgb(95, 95, 95); /* Green background */
     border: 1px solid rgb(0, 0, 0); /* Green border */
     color: white; /* White text */
@@ -34,6 +48,19 @@ body{
     float: left; /* Float the buttons side by side */
   }
   
+  .loaderC{
+    visibility: hidden;
+    cursor: pointer; /* Pointer/hand icon */
+    float: left; /* Float the buttons side by side */
+    border: 8px solid #8b8b8b; /* Light grey */
+    border-top: 8px solid #3e8e41; /* Blue */
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    animation: spin 1s linear infinite;
+    z-index: 10;
+
+  }
   .btn-group button:not(:last-child) {
     border-right: none; /* Prevent double borders */
   }
@@ -49,3 +76,12 @@ body{
   .btn-group button:hover {
     background-color: #3e8e41;
   }
+
+  
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+
+
+

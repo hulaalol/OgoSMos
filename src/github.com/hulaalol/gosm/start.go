@@ -26,19 +26,12 @@ const nofEdges = 80000000
 var finalNodes []Node
 var finalEdgesOut []Edge
 var finalOffsetsOut []uint32
-
-//var finalEdgesIn map[uint32]*EdgesIn
-//var finalEdgesIn []Edge
-
-//var finalEdgesIn map[uint32][]EdgeIn
-
 var unusualEdges int
 
 var start Node
 var finish Node
 
-// geodistance function
-
+// geodistance functions
 func QuickDistance(lat float32, lng float32, lat0 float32, lng0 float32) float64 {
 	deglen := 110.25
 	x := float64(lat - lat0)
@@ -64,12 +57,10 @@ func geoDistancePrecision(lat1 float32, lng1 float32, lat2 float32, lng2 float32
 	if dist < 0 {
 		dist = 0
 	}
-
 	dist = math.Acos(dist)
 	dist = dist * 180 / PI
 	dist = dist * 60 * 1.1515
 	dist = dist * 1.609344 * 1000
-
 	return dist
 }
 
@@ -78,10 +69,8 @@ func geoDistance(lat1 float32, lng1 float32, lat2 float32, lng2 float32) uint16 
 
 	radlat1 := float64(PI * float64(lat1) / 180)
 	radlat2 := float64(PI * float64(lat2) / 180)
-
 	theta := float64(lng1 - lng2)
 	radtheta := float64(PI * theta / 180)
-
 	dist := math.Sin(radlat1)*math.Sin(radlat2) + math.Cos(radlat1)*math.Cos(radlat2)*math.Cos(radtheta)
 
 	if dist > 1 {
@@ -104,17 +93,6 @@ func geoDistance(lat1 float32, lng1 float32, lat2 float32, lng2 float32) uint16 
 // Implement the gosmparser.OSMReader interface here.
 // Streaming data will call those functions.
 type Empty struct {
-}
-
-type ParseNode struct {
-	id  int64
-	lat float32
-	lon float32
-}
-
-type ParseEdge struct {
-	n1 int64
-	n2 int64
 }
 
 type Node struct {
@@ -158,7 +136,6 @@ func (d *dataHandlerNodes) ReadNode(n gosmparse.Node) {
 		d.mutex.Lock()
 		d.nodes[d.nodeCount] = Node{n.Element.ID, 0, float32(n.Lat), float32(n.Lon)}
 		d.nodeCount++
-		//delete((*d.nodesDict), n.Element.ID)
 		d.mutex.Unlock()
 	}
 }
@@ -169,7 +146,6 @@ func (d *dataHandlerNodes) ReadRelation(r gosmparse.Relation) {
 
 // data handler for ways
 func (d *dataHandlerWays) ReadNode(n gosmparse.Node) {
-
 }
 
 func (d *dataHandlerWays) ReadWay(w gosmparse.Way) {
@@ -180,10 +156,8 @@ func (d *dataHandlerWays) ReadWay(w gosmparse.Way) {
 		if _, ok3 := (*d.accessRights)["blacklist"][w.Element.Tags["highway"]]; ok3 {
 			return
 		}
-
 		// parse maxspeed
 		if v2, ok2 := w.Element.Tags["maxspeed"]; ok2 {
-
 			ms, err := strconv.Atoi(v2)
 			if err != nil {
 				ms = 50
@@ -208,7 +182,6 @@ func (d *dataHandlerWays) ReadWay(w gosmparse.Way) {
 		if _, ok := (*d.accessRights)["footOnly"][w.Element.Tags["highway"]]; ok {
 			access = 4
 		}
-
 		d.mutex.Lock()
 		for i := 0; i < len(w.NodeIDs)-1; i++ {
 
@@ -240,26 +213,25 @@ func decoder() {
 	//file := "data/stgt.osm.pbf"
 	file := "data/germany.osm.pbf"
 
-	fmt.Println("parsing edges ...")
+	log.Printf("parsing edges ...")
 	r, err := os.Open(file)
 	if err != nil {
 		panic(err)
 	}
 	dec := gosmparse.NewDecoder(r)
 	// Parse will block until it is done or an error occurs.
+
 	var nodes [nofNodes]int64
 	var edgesOut [nofEdges]Edge
 
 	// blacklist
 	blacklist := make(map[string]Empty)
-	//b := [6]string{"track", "bus_guideway", "bridleway", "escape", "raceway", "steps"}
 	b := [9]string{"bridleway", "escape", "raceway", "service", "proposed", "construction", "elevator", "track", "platform"}
 	for i := 0; i < len(b); i++ {
 		blacklist[b[i]] = Empty{}
 	}
-
 	carOnly := make(map[string]Empty)
-	c := [6]string{"primary", "trunk", "motorway", "motorway_link", "trunk_link", "primary_link"}
+	c := [8]string{"primary", "trunk", "motorway", "motorway_link", "trunk_link", "primary_link"}
 	for i := 0; i < len(c); i++ {
 		carOnly[c[i]] = Empty{}
 	}
@@ -283,20 +255,15 @@ func decoder() {
 	accessRights["footbike"] = footbike
 
 	d := dataHandlerWays{0, 0, &nodes, &edgesOut, &sync.Mutex{}, &accessRights}
-
-	//err = dec.Parse(&dataHandler{})
 	err = dec.Parse(&d)
 
-	fmt.Println("building nodesDict ...")
+	log.Printf("building nodesDict ...")
 	var nodesDict = make(map[int64]Empty)
 	for i := 0; i < len(nodes)-1; i++ {
 		nodesDict[nodes[i]] = Empty{}
 	}
 
-	//debug.FreeOSMemory()
-	//runtime.GC()
-
-	fmt.Println("get nodes location")
+	log.Printf("get nodes location")
 	r, err = os.Open(file)
 
 	var nodes2 [nofNodes2]Node
@@ -318,8 +285,6 @@ func decoder() {
 	}
 
 	nodes3 := nodes2[0:idx]
-	//nodes3 := make([]Node, idx)
-	//copy(nodes3, nodes2[0:idx])
 
 	idx = 0
 	for i := len(edgesOut) - 1; i >= 0; i-- {
@@ -331,22 +296,19 @@ func decoder() {
 	}
 
 	edgesOut2 := edgesOut[0:idx]
-	//edgesOut2 := make([]Edge, idx)
-	//copy(edgesOut2, edgesOut[0:idx])
+	log.Printf("done ...")
 
-	fmt.Println("done ...")
-
-	fmt.Println("sorting nodes")
+	log.Printf("sorting nodes")
 	sort.Slice(nodes3[:], func(i, j int) bool {
 		return nodes3[i].id < nodes3[j].id
 	})
 
-	fmt.Println("sorting edges by source")
+	log.Printf("sorting edges by source")
 	sort.Slice(edgesOut2[:], func(i, j int) bool {
 		return edgesOut2[i].n1 < edgesOut2[j].n1
 	})
 
-	fmt.Println("calc offsets for outgoing edges")
+	log.Printf("calc offsets for outgoing edges")
 	offsets := make([]uint32, 0)
 	offsets = append(offsets, 0)
 
@@ -368,12 +330,6 @@ func decoder() {
 				var c2Lat = nodes3[c2I].lat
 
 				var d = geoDistance(c1Lat, c1Lon, c2Lat, c2Lon)
-
-				if d > 2000 {
-					fmt.Println("warn: strange long edge, converting to point")
-					unusualEdges++
-					edgesOut2[currOffset].n2 = edgesOut2[currOffset].n1
-				}
 
 				edgesOut2[currOffset].distance = d
 			}
@@ -400,32 +356,28 @@ func decoder() {
 
 	finalOffsetsOut = offsets[0 : len(finalNodes)+1]
 
-	debug := true
+	debug := false
 	if debug {
 		n := 10
-		//for index, element := range nodes3 {
-		//	if index == n {
-		//		break
-		//	}
-		//	fmt.Println(edgesIn[element.id])
-		//}
+		log.Printf("%d", len(finalNodes))
+		log.Printf("%d", len(finalEdgesOut))
+		log.Printf("%d", len(finalOffsetsOut))
 
-		fmt.Println(len(finalNodes))
-		fmt.Println(len(finalEdgesOut))
-		fmt.Println(len(finalOffsetsOut))
-
-		fmt.Printf("%v", nodes3[0:n])
-		fmt.Println("\r")
-		fmt.Printf("%v", edgesOut2[0:n])
-		fmt.Println("\r")
-		fmt.Printf("%v", offsets[0:n])
-
+		log.Printf("%v", nodes3[0:n])
+		log.Printf("%v", edgesOut2[0:n])
+		log.Printf("%v", offsets[0:n])
 	}
 
 	if err != nil {
 		panic(err)
 	}
 
+}
+
+type LeafletMarker struct {
+	Name string
+	Lat  float32
+	Lon  float32
 }
 
 type LeafletEdge struct {
@@ -444,11 +396,7 @@ type LeafletEdgeArrayDijkstra struct {
 }
 
 func filterEdges(NWtlLat float32, NWtlLon float32, SEbrLat float32, SEbrLon float32, zoomLevel uint16) []LeafletEdge {
-	fmt.Println("start filtering edges")
-
-	fmt.Println(len(finalEdgesOut))
-	fmt.Println(len(finalOffsetsOut))
-	fmt.Println(len(finalNodes))
+	log.Printf("start filtering edges")
 
 	var e = make([]LeafletEdge, 0)
 
@@ -456,11 +404,9 @@ func filterEdges(NWtlLat float32, NWtlLon float32, SEbrLat float32, SEbrLon floa
 		if element.lat < NWtlLat && element.lat > SEbrLat && element.lon > NWtlLon && element.lon < SEbrLon {
 
 			var e0 = finalEdgesOut[finalOffsetsOut[index]:finalOffsetsOut[index+1]]
-			//fmt.Println(e0)
 
 			for _, j := range e0 {
 				//find locs
-
 				//only carOnly nodes in big zoom
 				if zoomLevel < 14 {
 					if j.access != 1 {
@@ -471,25 +417,22 @@ func filterEdges(NWtlLat float32, NWtlLon float32, SEbrLat float32, SEbrLon floa
 				var i2 = sort.Search(len(finalNodes)-1, func(k int) bool { return j.n2 <= finalNodes[k].id })
 
 				e = append(e, LeafletEdge{[]float32{finalNodes[i1].lat, finalNodes[i1].lon, finalNodes[i2].lat, finalNodes[i2].lon}})
-				//fmt.Println("appended edge")
 			}
 		}
 	}
-	fmt.Println("this many edges are visible on the map:")
-	fmt.Println(len(e))
+	log.Printf("%d%s", len(e), "edges are visible on the map:")
 	return e
 
 }
 
 func convLeafletEdge2JSONDijkstra(data []LeafletEdge, distance uint32) []byte {
 
-	fmt.Println("len of data to convert:")
-	fmt.Println(len(data))
+	log.Printf("%s%d", "len of json-map data to convert: ", len(data))
 
 	profile := LeafletEdgeArrayDijkstra{"edges", data, distance}
 	js, err := json.Marshal(profile)
 	if err != nil {
-		fmt.Println("error while converting LeafletEdgeArray to JSON")
+		log.Printf("error while converting LeafletEdgeArray to JSON")
 		return []byte{0}
 	}
 	return js
@@ -497,13 +440,12 @@ func convLeafletEdge2JSONDijkstra(data []LeafletEdge, distance uint32) []byte {
 
 func convLeafletEdge2JSON(data []LeafletEdge) []byte {
 
-	fmt.Println("len of data to convert:")
-	fmt.Println(len(data))
+	log.Printf("%s%d", "len of json-path data to convert: ", len(data))
 
 	profile := LeafletEdgeArray{"edges", data}
 	js, err := json.Marshal(profile)
 	if err != nil {
-		fmt.Println("error while converting LeafletEdgeArray to JSON")
+		log.Printf("error while converting LeafletEdgeArray to JSON")
 		return []byte{0}
 	}
 	return js
@@ -511,20 +453,6 @@ func convLeafletEdge2JSON(data []LeafletEdge) []byte {
 
 // dijkstra
 // heap implementation
-
-type HeapNode struct {
-	idx uint32
-	lat float32
-	lon float32
-}
-
-//type path struct {
-//	value     uint32
-//	heuristic float32
-//	nodes     []HeapNode
-//nodes     []Node
-//}
-
 type path struct {
 	value     uint32
 	heuristic float64
@@ -566,7 +494,7 @@ func (h *heap) pop() path {
 	return i.(path)
 }
 
-func findClosestNode(lat float32, lon float32, delta uint16) int {
+func findClosestNode(lat float32, lon float32, delta uint16, mode string) int {
 	var minIdx = 0
 	var minD = 999999999.0
 
@@ -581,7 +509,38 @@ func findClosestNode(lat float32, lon float32, delta uint16) int {
 		var d = geoDistancePrecision(lat, lon, node.lat, node.lon)
 
 		if d < float64(delta) {
-			return idx
+
+			e := finalEdgesOut[finalOffsetsOut[idx]:finalOffsetsOut[idx+1]]
+
+			var found = false
+			if mode == "car" {
+				for _, edge := range e {
+					if edge.access <= 1 {
+						found = true
+					}
+				}
+			}
+
+			if mode == "bike" {
+				for _, edge := range e {
+					if edge.access != 1 && edge.access != 4 {
+						found = true
+					}
+				}
+			}
+
+			if mode == "pedestrian" {
+				for _, edge := range e {
+					if edge.access != 1 && edge.access != 2 {
+						found = true
+					}
+				}
+			}
+
+			if found == true {
+				return idx
+			}
+
 		}
 
 		if d < float64(minD) {
@@ -598,13 +557,16 @@ type tracker struct {
 	cost_so_far uint32
 }
 
-func getPath(origin Node, destiny Node) (uint32, []Node) {
+func getPath(origin Node, destiny Node, mode string, metric string) (uint32, []Node) {
 
 	h := newHeap()
 	h.push(path{value: 0, heuristic: 0, node: origin.idx})
 
-	t := make(map[uint32]tracker)
-	t[start.idx] = tracker{0, 0}
+	t2 := make([]tracker, len(finalNodes))
+	t2[start.idx] = tracker{0, 0}
+	var new_cost uint32
+	var currentNode tracker
+	var heureka float64
 
 	for len(*h.values) > 0 {
 		// Find the node with the highest prio
@@ -618,9 +580,8 @@ func getPath(origin Node, destiny Node) (uint32, []Node) {
 
 			for c != origin.idx {
 				path = append(path, c)
-				c = t[c].came_from
+				c = t2[c].came_from
 			}
-
 			var result = make([]Node, len(path))
 			for idx, n := range path {
 				result[idx] = Node{0, n, finalNodes[n].lat, finalNodes[n].lon}
@@ -633,36 +594,48 @@ func getPath(origin Node, destiny Node) (uint32, []Node) {
 		var eOutIdxEnd = finalOffsetsOut[node+1]
 		var eOut = finalEdgesOut[eOutIdxStart:eOutIdxEnd]
 
-		//fmt.Println(eOut)
 		for _, e := range eOut {
 
-			// skip no car edges
-			if e.access > 1 {
+			// skip edges not allowed for this mode of travel
+			if mode == "car" && e.access > 1 {
+				continue
+			} else if mode == "bike" && (e.access == 1 || e.access == 4) {
+				continue
+			} else if mode == "pedestrian" && (e.access == 1 || e.access == 2) {
 				continue
 			}
 
-			new_cost := t[node].cost_so_far + uint32(e.distance)
+			if metric == "time" && mode == "car" {
+				new_cost = t2[node].cost_so_far + uint32(3600.0/((1000.0*float32(e.speed))/float32(e.distance)))
+			} else {
+				new_cost = t2[node].cost_so_far + uint32(e.distance)
+			}
 
 			exists := false
 
-			if _, ok := t[e.n2idx]; ok {
+			if t2[e.n2idx].came_from != 0 {
 				exists = true
+				currentNode = t2[e.n2idx]
 			}
 
-			if !exists || (new_cost < t[e.n2idx].cost_so_far) {
+			if !exists || (new_cost < currentNode.cost_so_far) {
 
 				cost_so_far := new_cost
-				//heureka := math.Pow(QuickDistance(destiny.lat, destiny.lon, finalNodes[e.n2idx].lat, finalNodes[e.n2idx].lon), 5)
-				heureka := QuickDistance(destiny.lat, destiny.lon, finalNodes[e.n2idx].lat, finalNodes[e.n2idx].lon)
+
+				if metric == "time" && mode == "car" {
+					heureka = 3600.0 / (50000.0 / QuickDistance(destiny.lat, destiny.lon, finalNodes[e.n2idx].lat, finalNodes[e.n2idx].lon))
+				} else {
+					heureka = QuickDistance(destiny.lat, destiny.lon, finalNodes[e.n2idx].lat, finalNodes[e.n2idx].lon)
+				}
 				prio := float64(new_cost) + heureka
 				h.push(path{value: new_cost, heuristic: prio, node: finalNodes[e.n2idx].idx})
 				came_from := p.node
-				t[e.n2idx] = tracker{came_from, cost_so_far}
+				t2[e.n2idx] = tracker{came_from, cost_so_far}
 			}
 
 		}
 	}
-	fmt.Println("can't find a way :(")
+	log.Printf("can't find a way :(, try again")
 	return 0, make([]Node, 0)
 }
 
@@ -693,12 +666,9 @@ type Command struct {
 }
 
 type DijkstraInput struct {
-	Do        string  `json:"do"`
-	Mode      string  `json:"mode"`
-	StartLat  float32 `json:"startLat"`
-	StartLon  float32 `json:"startLon"`
-	TargetLat float32 `json:"targetLat"`
-	TargetLon float32 `json:"targetLon"`
+	Do     string `json:"do"`
+	Mode   string `json:"mode"`
+	Metric string `json:"metric"`
 }
 
 func dijkstra(w http.ResponseWriter, r *http.Request) {
@@ -717,10 +687,13 @@ func dijkstra(w http.ResponseWriter, r *http.Request) {
 		}
 
 		startTime := time.Now()
-		//var distance, path = getPath(startNode, destNode)
-		var distance, path = getPath(start, finish)
+		var distance, path = getPath(start, finish, req.Mode, req.Metric)
 
-		log.Printf("found path with %d nodes and %d m length", len(path), distance)
+		if req.Metric == "distance" {
+			log.Printf("found path with %d nodes and %d m length", len(path), distance)
+		} else {
+			log.Printf("found path with %d nodes and %d s travel duration", len(path), distance)
+		}
 
 		elapsed := time.Since(startTime)
 		log.Printf("\rfinished finding dijkstra way in %s", elapsed)
@@ -730,8 +703,6 @@ func dijkstra(w http.ResponseWriter, r *http.Request) {
 		for idx, _ := range path {
 
 			if idx != len(path)-1 {
-				//var nodeIdx1 = sort.Search(len(finalNodes)-1, func(k int) bool { return path[idx] <= finalNodes[k].id })
-				//var nodeIdx2 = sort.Search(len(finalNodes)-1, func(k int) bool { return path[idx+1] <= finalNodes[k].id })
 				coords = append(coords, LeafletEdge{[]float32{finalNodes[path[idx].idx].lat, finalNodes[path[idx].idx].lon, finalNodes[path[idx+1].idx].lat, finalNodes[path[idx+1].idx].lon}})
 			}
 
@@ -747,8 +718,8 @@ func dijkstra(w http.ResponseWriter, r *http.Request) {
 }
 
 type Marker struct {
-	Do   string  `json:"do"`
 	Type string  `json:"type"`
+	Mode string  `json:"mode"`
 	Lat  float32 `json:"lat"`
 	Lon  float32 `json:"lon"`
 }
@@ -767,16 +738,30 @@ func setMarker(w http.ResponseWriter, r *http.Request) {
 			panic(err)
 		}
 
+		var jsonMarker LeafletMarker
 		if req.Type == "start" {
-			start = finalNodes[findClosestNode(req.Lat, req.Lon, 5)]
+			start = finalNodes[findClosestNode(req.Lat, req.Lon, 100, req.Mode)]
+
+			jsonMarker = LeafletMarker{"start", start.lat, start.lon}
+
 		} else if req.Type == "finish" {
-			finish = finalNodes[findClosestNode(req.Lat, req.Lon, 5)]
+			finish = finalNodes[findClosestNode(req.Lat, req.Lon, 100, req.Mode)]
+
+			jsonMarker = LeafletMarker{"finish", finish.lat, finish.lon}
+
 		} else {
 			log.Println("invalid marker type!")
 
 		}
-		log.Println("handled marker request.")
 
+		js, err := json.Marshal(jsonMarker)
+		if err != nil {
+			log.Printf("error while converting LeafletMarker to JSON")
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(js)
+		log.Println("handled marker request.")
 	}
 }
 
@@ -834,10 +819,10 @@ func (data *EdgesIn) AppendOffer(edgeIn EdgeIn) {
 func main() {
 	//defer profile.Start().Stop()
 	startTime := time.Now()
-	fmt.Println("start parsing")
+	log.Printf("start parsing")
 	decoder()
 
-	fmt.Println("building edges in")
+	log.Printf("building edges in")
 
 	var edgeErrors = 0
 
