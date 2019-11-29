@@ -16,9 +16,30 @@ Requirements:
 
 During parsing, the program might need about 13-14GB of Memory for a short time, so if your machine has only 16GB memory close some Chrome-Tabs ;)
 
+
+
 ## Usage
+After parsing is done, a web server is running the GUI at `localhost:808/web/`.
+The GUI is very minimalistic. When you access the site, the german road network is generated.
+Please allow some time for the leaflet.js framework to draw the layer on top of the map.
 ![1](/src/github.com/hulaalol/gosm/doc/1.png)
+### Visualizing street graph
+If you zoom out, at a certain zoomlevel only big roads are shown:
 ![2](/src/github.com/hulaalol/gosm/doc/2.png) 
+The zoom process takes some time, because leaflet is rendering the data on a canvas.
+
+Whenever you see the small rotating circle in the top right, the GUI has made a request to the server and is waiting for an answer. So don't press any buttons while the server is handling the request :)
 ![3](/src/github.com/hulaalol/gosm/doc/3.png) 
+
+### Routing
+Before calculating the path, please deactivate the street graph by clicking "Hide Graph" (because the germany layer of leaflet.js takes a big chunk of memory).
+
+Next you can select which travelmode you want to select: Car, Cyclist or Pedestrian.
+You can select if the program should search for shortest distance or shortest traveltime.
+
+In the next step you have to click the map to place the start and finish markers.
+The program will search for the closest node which respects your mode of travel and snap the marker to it. 
+Finally, you can click calculate route to get the shortest path:
 ![4](/src/github.com/hulaalol/gosm/doc/4.png) 
+
 ![5](/src/github.com/hulaalol/gosm/doc/5.png) 
