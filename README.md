@@ -11,8 +11,9 @@ Requirements:
 2. Clone this repository and unzip it to a folder of your choice
 3. Set the go-workspace to the directory where you extracted the repo (https://github.com/golang/go/wiki/SettingGOPATH#go-113)
 4. Navigate to `yourFolder/src/github.com/hulaalol/gosm/` in the command-line and run `go get -u github.com/thomersch/gosmparse` to install the OSM-Parser
-5. Place the map file `germany.osm.pbf` in the data folder of the repo.
-6. Now you can run `go run start.go` in the directory `yourFolder/src/github.com/hulaalol/gosm/`.
+5. Create the data folder `yourFolder/src/github.com/hulaalol/gosm/data`.
+6. Place the map file `germany.osm.pbf` in the data folder of the repo.
+7. Now you can run `go run start.go` in the directory `yourFolder/src/github.com/hulaalol/gosm/`.
 
 During parsing, the program might need about 13-14GB of Memory for a short time, so if your machine has only 16GB memory close some Chrome-Tabs ;)
 
