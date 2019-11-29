@@ -24,7 +24,7 @@ Parsing Time: 3min 23s
 Route Stuttgart-Hamburg, Car, Shortest Distance: 10.85 s  
 
 ## Usage
-After parsing is done, a web server is running the GUI at `localhost:808/web/`.
+After parsing is done, a web server is running the GUI at `localhost:8080/web/`.
 The GUI is very minimalistic. When you access the site, the german road network is generated.
 Please allow some time for the leaflet.js framework to draw the layer on top of the map.
 ![1](/src/github.com/hulaalol/gosm/doc/1.png)
