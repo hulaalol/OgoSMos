@@ -8,7 +8,7 @@ Requirements:
 - An OSM-file of germany named "germany.osm.pbf"
 
 1. If not already installed, install the go language: https://golang.org/
-2. Clone this repository and unzip it to a folder of your choice
+2. Clone this repository and unzip it to a folder of your choice. (Named `yourFolder` in the following steps)
 3. Navigate to `yourFolder/src/github.com/hulaalol/gosm/` in the command-line and run `go get -u github.com/thomersch/gosmparse` to install the OSM-Parser
 4. Create the data folder `yourFolder/src/github.com/hulaalol/gosm/data`.
 5. Place the map file `germany.osm.pbf` in the data folder of the repo.
