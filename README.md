@@ -5,7 +5,7 @@ Requirements:
 - Ubuntu 18.04.03 LTS
 - go 1.13.4 linux/amd64
 - go package : github.com/thomersch/gosmparse
-- A OSM-file of germany named "germany.osm.pbf"
+- An OSM-file of germany named "germany.osm.pbf"
 
 1. If not already installed, install the go language: https://golang.org/
 2. Clone this repository and unzip it to a folder of your choice
