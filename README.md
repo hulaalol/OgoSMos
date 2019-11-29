@@ -37,7 +37,7 @@ Whenever you see the small rotating circle in the top right, the GUI has made a 
 ![3](/src/github.com/hulaalol/gosm/doc/3.png) 
 
 ### Routing
-Before calculating the path, please deactivate the street graph by clicking "Hide Graph" (because the germany layer of leaflet.js takes a big chunk of memory).
+Before calculating the path, **please deactivate the street graph by clicking "Hide Graph"** (because the germany layer of leaflet.js takes a big chunk of memory).
 
 Next you can select which travelmode you want to select: Car, Cyclist or Pedestrian.
 You can select if the program should search for shortest distance or shortest traveltime.
