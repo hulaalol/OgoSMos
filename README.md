@@ -18,10 +18,10 @@ During parsing, the program might need about 13-14GB of Memory for a short time,
 
 ## Benchmark
 The program was run on a i7-4700MQ @ 2.8GHz, with Hyper-Threading enabled (4C/8T).
-The machine had 16GB of memory.
+The machine had 16GB of memory.  
 
-Parsing Time: 3min 23s
-Route Stuttgart-Hamburg, Car, Shortest Distance: 10.85 s
+Parsing Time: 3min 23s  
+Route Stuttgart-Hamburg, Car, Shortest Distance: 10.85 s  
 
 ## Usage
 After parsing is done, a web server is running the GUI at `localhost:808/web/`.
