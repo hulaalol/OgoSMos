@@ -44,7 +44,8 @@ You can select if the program should search for shortest distance or shortest tr
 
 In the next step you have to click the map to place the start and finish markers.
 The program will search for the closest node which respects your mode of travel and snap the marker to it. 
-Finally, you can click calculate route to get the shortest path:
+Finally, you can click calculate route to get the shortest path:  
+
 ![4](/src/github.com/hulaalol/gosm/doc/4.png) 
 
 ![5](/src/github.com/hulaalol/gosm/doc/5.png) 
