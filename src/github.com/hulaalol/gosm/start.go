@@ -211,7 +211,7 @@ func decoder() {
 	//start := time.Now()
 
 	//file := "data/stgt.osm.pbf"
-	file := "data/germany.osm.pbf"
+	file := "data/stuttgart.osm.pbf"
 
 	log.Printf("parsing edges ...")
 	r, err := os.Open(file)
