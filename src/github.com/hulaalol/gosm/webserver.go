@@ -49,6 +49,7 @@ type LeafletMarker struct {
 
 type LeafletEdge struct {
 	C []float32
+	N string
 }
 
 type LeafletEdgeArray struct {
@@ -84,7 +85,7 @@ func filterEdges(NWtlLat float32, NWtlLon float32, SEbrLat float32, SEbrLon floa
 				var i1 = sort.Search(len(finalNodes)-1, func(k int) bool { return j.n1 <= finalNodes[k].id })
 				var i2 = sort.Search(len(finalNodes)-1, func(k int) bool { return j.n2 <= finalNodes[k].id })
 
-				e = append(e, LeafletEdge{[]float32{finalNodes[i1].lat, finalNodes[i1].lon, finalNodes[i2].lat, finalNodes[i2].lon}})
+				e = append(e, LeafletEdge{[]float32{finalNodes[i1].lat, finalNodes[i1].lon, finalNodes[i2].lat, finalNodes[i2].lon}, ""})
 			}
 		}
 	}
@@ -151,13 +152,14 @@ func dijkstra(w http.ResponseWriter, r *http.Request) {
 		for idx, _ := range path {
 
 			if idx != len(path)-1 {
-				coords = append(coords, LeafletEdge{[]float32{finalNodes[path[idx].idx].lat, finalNodes[path[idx].idx].lon, finalNodes[path[idx+1].idx].lat, finalNodes[path[idx+1].idx].lon}})
+				coords = append(coords, LeafletEdge{[]float32{finalNodes[path[idx].idx].lat, finalNodes[path[idx].idx].lon, finalNodes[path[idx+1].idx].lat, finalNodes[path[idx+1].idx].lon}, path[idx].streetname})
 			}
 
 		}
 
 		var answer = convLeafletEdge2JSONDijkstra(coords, distance)
 
+		fmt.Println(answer)
 		w.Header().Set("Content-Type", "application/json")
 		w.Write(answer)
 

@@ -6,10 +6,18 @@ import (
 )
 
 func main() {
+
+	file := "data/london.osm.pbf"
+
 	//defer profile.Start().Stop()
+
+	//fmt.Println(testGet())
+	//fmt.Println(cleanStreetname("Hauptstätter Straße"))
+	queryDBP("Walnut")
+
 	startTime := time.Now()
 	log.Printf("start parsing")
-	decoder()
+	decoder(file)
 
 	log.Printf("building edges in")
 

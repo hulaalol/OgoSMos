@@ -164,7 +164,7 @@ $(document).ready(function(){
     London = [51.505, -0.09]
     Stuttgart = [48.775, 9.1829321]
 
-    mymap = L.map('mapid',{renderer: L.canvas()}).setView(Stuttgart, 15);
+    mymap = L.map('mapid',{renderer: L.canvas()}).setView(London, 15);
 
 
     selectCar();

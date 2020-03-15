@@ -2,7 +2,6 @@ package main
 
 import (
 	hp "container/heap"
-	"fmt"
 	"log"
 )
 
@@ -153,7 +152,6 @@ func getPath(origin Node, destiny Node, mode string, metric string) (uint32, []S
 			for idx, n := range path {
 
 				result[idx] = SNode{n, finalNodes[n].lat, finalNodes[n].lon, snames[idx]}
-				fmt.Println(snames[idx])
 			}
 			return p.value, result
 		}

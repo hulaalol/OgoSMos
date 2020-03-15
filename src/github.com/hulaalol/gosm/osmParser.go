@@ -207,11 +207,11 @@ func (d *dataHandlerWays) ReadRelation(r gosmparse.Relation) {
 
 }
 
-func decoder() {
+func decoder(m string) {
 	//start := time.Now()
 
 	//file := "data/stgt.osm.pbf"
-	file := "data/stuttgart.osm.pbf"
+	file := m
 
 	log.Printf("parsing edges ...")
 	r, err := os.Open(file)
