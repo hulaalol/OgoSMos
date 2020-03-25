@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"time"
 )
@@ -13,7 +14,27 @@ func main() {
 
 	//fmt.Println(testGet())
 	//fmt.Println(cleanStreetname("Hauptstätter Straße"))
-	queryDBP("Walnut")
+
+	// TEST AREA
+	var item = "Walnut"
+	var q = genItem(item)
+
+	item = "McLaren"
+	q = genItem(item)
+
+	item = "Lambeth_Bridge"
+	q = genItem(item)
+
+	item = "Lambeth"
+	q = genItem(item)
+
+	item = "Morpeth_School"
+	q = genItem(item)
+	fmt.Println(q)
+
+	// select subject matching class of item
+
+	// END TEST AREA
 
 	startTime := time.Now()
 	log.Printf("start parsing")
