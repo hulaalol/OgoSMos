@@ -5,7 +5,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
-	"strconv"
 	"strings"
 
 	"github.com/valyala/fastjson"
@@ -62,7 +61,7 @@ func queryDBP(item string, typ string) []information {
 		res = append(res, information{p, v})
 	}
 
-	fmt.Println("Found " + strconv.Itoa(len(res)) + " informations about " + item)
+	//fmt.Println("Found " + strconv.Itoa(len(res)) + " informations about " + item)
 
 	var redirect = getRedirect(res)
 
@@ -83,6 +82,45 @@ func getRedirect(info []information) string {
 		return cleanURL(redirect[0].val.val)
 	} else {
 		return "null"
+	}
+
+}
+
+func getRedirect2(item string) string {
+	/*
+	   PREFIX res: <http://dbpedia.org/resource/>
+	   PREFIX dbo: <http://dbpedia.org/ontology/>
+	   SELECT ?property WHERE {
+	      res:Arch_Bridge dbo:wikiPageRedirects ?property
+	   }
+
+	   https://dbpedia.org/sparql?default-graph-uri=http%3A%2F%2Fdbpedia.org&query=PREFIX+res%3A+%3Chttp%3A%2F%2Fdbpedia.org%2Fresource%2F%3E%0D%0APREFIX+dbo%3A+%3Chttp%3A%2F%2Fdbpedia.org%2Fontology%2F%3E%0D%0A%0D%0ASELECT+%3Fproperty+WHERE+%7B+%0D%0A+++res%3AArch_Bridge+dbo%3AwikiPageRedirects+%3Fproperty%0D%0A%7D++%0D%0A&format=application%2Fsparql-results%2Bjson&CXML_redir_for_subjs=121&CXML_redir_for_hrefs=&timeout=30000&debug=on&run=+Run+Query+
+	*/
+
+	fmt.Println("getting redirect for: " + item)
+	item = cleanSpecialCharacters(item)
+
+	Url, err := url.Parse("https://dbpedia.org")
+	if err != nil {
+		panic("boom")
+	}
+
+	Url.Path += "/sparql"
+	Url.RawQuery = "default-graph-uri=http%3A%2F%2Fdbpedia.org&query=PREFIX+res%3A+%3Chttp%3A%2F%2Fdbpedia.org%2Fresource%2F%3E%0D%0APREFIX+dbo%3A+%3Chttp%3A%2F%2Fdbpedia.org%2Fontology%2F%3E%0D%0A%0D%0ASELECT+%3Fproperty+WHERE+%7B+%0D%0A+++res%3A" + item + "+dbo%3AwikiPageRedirects+%3Fproperty%0D%0A%7D++%0D%0A&format=application%2Fsparql-results%2Bjson&CXML_redir_for_subjs=121&CXML_redir_for_hrefs=&timeout=30000&debug=on&run=+Run+Query+"
+
+	fmt.Println("Querying DBPedia with: " + Url.String())
+
+	var data = getJSON(Url.String()).Get("results", "bindings").GetArray()
+
+	fmt.Println(data)
+
+	if data == nil {
+		// there is no redirect
+		return "null"
+	} else {
+		// convert json structure to go-objects array (information array)
+		var res = cleanURL(string(data[0].Get("property").GetStringBytes("value")))
+		return res
 	}
 
 }
@@ -150,6 +188,15 @@ func cleanCategory(s string) string {
 	return s[lastColon+1 : len(s)]
 }
 
+func cleanSpecialCharacters(s string) string {
+
+	var t = strings.ReplaceAll(s, "(", "\\(")
+	t = strings.ReplaceAll(t, ")", "\\)")
+	t = strings.ReplaceAll(t, ",", "\\,")
+
+	return t
+}
+
 type Question struct {
 	item        string
 	answer      string
@@ -157,11 +204,13 @@ type Question struct {
 }
 
 type ItemData struct {
-	class          information
-	superClasses   []information
+	item           string
+	class          string
+	superClasses   string
 	siblingClasses []info
-	subjects       []information
-	properties     []information
+	categories     []info
+	subjects       string
+	properties     string
 }
 
 func getClassName(queryResult []information) []string {
@@ -197,29 +246,32 @@ func getClassName(queryResult []information) []string {
 
 func genItem(item string) ItemData {
 
-	var res = queryDBP(item, "dbr")
+	var i = cleanSpecialCharacters(item)
+
+	var res = queryDBP(i, "dbr")
 	if len(res) == 0 {
-		res = queryDBP(item, "dbo")
+		res = queryDBP(i, "dbo")
 	}
 
 	var className = getClassName(res)
-	fmt.Println("Found class " + className[0] + " for " + item)
+	//fmt.Println("Found class " + className[0] + " for " + item)
 
 	// find superclasses and siblings
 
-	var test = strings.ReplaceAll(className[0], "(", "\\(")
-	test = strings.ReplaceAll(test, ")", "\\)")
-
-	className[0] = test
+	var cN = className[0]
+	className[0] = cleanSpecialCharacters(className[0])
 
 	var classQuery = queryDBP(className[0], className[1])
 	var superClass = getClassName(classQuery)
-	fmt.Println("Found superclass " + superClass[0] + " for " + item)
+	//fmt.Println("Found superclass " + superClass[0] + " for " + item)
 
-	return ItemData{}
+	return ItemData{item, cN, superClass[0], getSiblings(cN), getCategories(cN), "", ""}
 }
 
-func queryDBPSiblings(ontology string, category string) []info {
+func getSiblings(class string) []info {
+
+	fmt.Println("getting siblings for: " + class)
+	class = cleanSpecialCharacters(class)
 
 	Url, err := url.Parse("https://dbpedia.org")
 	if err != nil {
@@ -228,22 +280,66 @@ func queryDBPSiblings(ontology string, category string) []info {
 
 	// Raw query because DBpedia query special characters should NOT be html encoded
 	Url.Path += "/sparql"
-	Url.RawQuery = "default-graph-uri=http://dbpedia.org&query=select+?s1%0D%0Awhere+%7B%0D%0A++++%3Fs1+a+dbo%3A" + ontology + "%3B+dct%3Asubject+dbc%3A" + category + "%0D%0A%7D&format=application%2Fsparql-results%2Bjson&CXML_redir_for_subjs=121&CXML_redir_for_hrefs=&timeout=30000&debug=on&run=+Run+Query+"
+	//Url.RawQuery = "default-graph-uri=http://dbpedia.org&query=select+distinct+?property+?value%7B%0D%0A++" + typ + "%3A" + item + "+%3Fproperty+%3Fvalue%0D%0A%7D&format=application%2Fsparql-results%2Bjson&CXML_redir_for_subjs=121&CXML_redir_for_hrefs=&timeout=30000&debug=on&run=+Run+Query+"
+	//Community_school_%5C%28England_and_Wales%5C%29
+	Url.RawQuery = "default-graph-uri=http://dbpedia.org&query=PREFIX+dbo%3A+%3Chttp%3A%2F%2Fdbpedia.org%2Fontology%2F%3E%0D%0APREFIX+res%3A+%3Chttp%3A%2F%2Fdbpedia.org%2Fresource%2F%3E%0D%0ASELECT+%3Fproperty%0D%0AWHERE+%7B+++++++%0D%0A++++++++%3Fproperty+dbo%3Atype+res%3A" + class + "+++%0D%0A%7D&format=application%2Fsparql-results%2Bjson&CXML_redir_for_subjs=121&CXML_redir_for_hrefs=&timeout=30000&debug=on&run=+Run+Query+"
 
-	//fmt.Println("Querying DBPedia with: " + Url.String())
+	fmt.Println("Querying DBPedia with: " + Url.String())
 
 	// create json from json-string answer
 	var data = getJSON(Url.String()).Get("results", "bindings").GetArray()
 
+	fmt.Println(data)
 	// convert json structure to go-objects array (information array)
 	var res []info
 	for _, d := range data {
-
-		var t = string(d.Get("s1").GetStringBytes("type"))
-		var v = string(d.Get("s1").GetStringBytes("value"))
-		res = append(res, info{t, v})
+		var p = info{string(d.Get("property").GetStringBytes("type")), string(d.Get("property").GetStringBytes("value"))}
+		res = append(res, p)
 	}
 
+	//fmt.Println("Found " + strconv.Itoa(len(res)) + " informations about " + item)
+	return res
+
+}
+
+func getCategories(class string) []info {
+
+	fmt.Println("getting categories for: " + class)
+	class = cleanSpecialCharacters(class)
+
+	Url, err := url.Parse("https://dbpedia.org")
+	if err != nil {
+		panic("boom")
+	}
+
+	Url.Path += "/sparql"
+	Url.RawQuery = "default-graph-uri=http://dbpedia.org&query=PREFIX++dct%3A++%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Fterms%2F%3E+%0D%0APREFIX+res%3A+%3Chttp%3A%2F%2Fdbpedia.org%2Fresource%2F%3E%0D%0A%0D%0ASELECT+%3Fproperty+WHERE+%7B+%0D%0A+++res%3A" + class + "+dct%3Asubject+%3Fproperty%0D%0A%7D++%0D%0AORDER+BY+%3Fproperty&format=application%2Fsparql-results%2Bjson&CXML_redir_for_subjs=121&CXML_redir_for_hrefs=&timeout=30000&debug=on&run=+Run+Query+"
+
+	fmt.Println("Querying DBPedia with: " + Url.String())
+
+	var data = getJSON(Url.String()).Get("results", "bindings").GetArray()
+
+	if data == nil {
+
+		var redirect = getRedirect2(class)
+
+		if redirect == "null" {
+			return []info{}
+		} else {
+			return getCategories(redirect)
+		}
+
+	}
+
+	fmt.Println(data)
+	// convert json structure to go-objects array (information array)
+	var res []info
+	for _, d := range data {
+		var p = info{string(d.Get("property").GetStringBytes("type")), string(d.Get("property").GetStringBytes("value"))}
+		res = append(res, p)
+	}
+
+	//fmt.Println("Found " + strconv.Itoa(len(res)) + " informations about " + item)
 	return res
 
 }
@@ -251,9 +347,23 @@ func queryDBPSiblings(ontology string, category string) []info {
 // TODO
 /*
 
-- filter out parenthesis in queries
-- get siblings of classes
+- filter out parenthesis and commas in queries DONE
+- get siblings of classes DONE
+- get categories DONE
+- failsafe for redirects!
 - get numeric properties
+- select from multiple entries (Morpeth --> is a school, a place, a band etc.)
+
+
+// QUERIES
+PREFIX dbo: <http://dbpedia.org/ontology/>
+PREFIX res: <http://dbpedia.org/resource/>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+SELECT ?s
+WHERE {
+        ?s dbo:type res:Community_school_\(England_and_Wales\)
+}
+
 
 
 */
@@ -287,3 +397,33 @@ func queryDBPSiblings(ontology string, category string) []info {
 //where {
 //  ?s1 a dbo:Bridge; dct:subject dbc:Bridges
 //}
+
+/* func queryDBPSiblings(ontology string, category string) []info {
+
+	Url, err := url.Parse("https://dbpedia.org")
+	if err != nil {
+		panic("boom")
+	}
+
+	// Raw query because DBpedia query special characters should NOT be html encoded
+	Url.Path += "/sparql"
+	Url.RawQuery = "default-graph-uri=http://dbpedia.org&query=select+?s1%0D%0Awhere+%7B%0D%0A++++%3Fs1+a+dbo%3A" + ontology + "%3B+dct%3Asubject+dbc%3A" + category + "%0D%0A%7D&format=application%2Fsparql-results%2Bjson&CXML_redir_for_subjs=121&CXML_redir_for_hrefs=&timeout=30000&debug=on&run=+Run+Query+"
+
+	//fmt.Println("Querying DBPedia with: " + Url.String())
+
+	// create json from json-string answer
+	var data = getJSON(Url.String()).Get("results", "bindings").GetArray()
+
+	// convert json structure to go-objects array (information array)
+	var res []info
+	for _, d := range data {
+
+		var t = string(d.Get("s1").GetStringBytes("type"))
+		var v = string(d.Get("s1").GetStringBytes("value"))
+		res = append(res, info{t, v})
+	}
+
+	return res
+
+}
+*/

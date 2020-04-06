@@ -16,16 +16,20 @@ func main() {
 	//fmt.Println(cleanStreetname("Hauptstätter Straße"))
 
 	// TEST AREA
-	var item = "Walnut"
+
+	var item = "Lambeth_Bridge"
 	var q = genItem(item)
+
+	item = "Walnut"
+	q = genItem(item)
 
 	item = "McLaren"
 	q = genItem(item)
 
-	item = "Lambeth_Bridge"
+	item = "Lambeth"
 	q = genItem(item)
 
-	item = "Lambeth"
+	item = "Pall_Mall,_London"
 	q = genItem(item)
 
 	item = "Morpeth_School"
