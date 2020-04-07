@@ -17,8 +17,21 @@ func main() {
 
 	// TEST AREA
 
-	var item = "Lambeth_Bridge"
+	var item = "Viscount_Morpeth"
 	var q = genItem(item)
+
+	q = genItem("Waterloo_Bridge")
+
+	q = genItem("Holyoak")
+
+	item = "Morpeth_Dock"
+	q = genItem(item)
+
+	item = "Morpeth"
+	q = genItem(item)
+
+	item = "Lambeth_Bridge"
+	q = genItem(item)
 
 	item = "Walnut"
 	q = genItem(item)
