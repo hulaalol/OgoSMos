@@ -83,6 +83,19 @@ func cleanStreetname(s string) string {
 
 func cleanURL(s string) string {
 
+	// resource
+	var dbr = "http://dbpedia.org/resource/"
+	if strings.Contains(s, dbr) {
+		return strings.Replace(s, dbr, "", -1)
+	}
+
+	// item with slash e.g. "HIV/AIDS"
+	if !strings.Contains(s, ":") {
+		return s
+	}
+
+	// URL
+
 	var lastSlash = 0
 	for i, _ := range s {
 		if s[i] == 47 {
@@ -113,6 +126,7 @@ func cleanSpecialCharacters(s string) string {
 	var t = strings.ReplaceAll(s, "(", "\\(")
 	t = strings.ReplaceAll(t, ")", "\\)")
 	t = strings.ReplaceAll(t, ",", "\\,")
+	t = strings.ReplaceAll(t, "/", "\\/")
 
 	return t
 }
@@ -124,18 +138,19 @@ type Question struct {
 }
 
 type ItemData struct {
-	item           string
-	class          string
-	superClasses   string
-	siblingClasses []info
-	categories     []info
-	categoriesExp  [][]info
-	catDists       []catDist
-	subjects       string
-	properties     []information
+	item          string
+	class         string
+	superClasses  string
+	siblings      []info
+	supersiblings []info
+	categories    []info
+	categoriesExp [][]info
+	catDists      []catDist
+	properties    []information
+	propertyDists []propDist
 }
 
-func genItem(item string) ItemData {
+func genItem(item string, getPropDists bool) ItemData {
 
 	// clean
 	// check redirects
@@ -159,11 +174,17 @@ func genItem(item string) ItemData {
 
 			var disambiguations = getDisambiguations(item)
 
-			var s = rand.NewSource(time.Now().Unix())
-			var r = rand.New(s) // initialize local pseudorandom generator
-			var newItem = cleanURL(disambiguations[r.Intn(len(disambiguations))].val)
+			if len(disambiguations) > 0 {
+				var s = rand.NewSource(time.Now().Unix())
+				var r = rand.New(s) // initialize local pseudorandom generator
+				var newItem = cleanURL(disambiguations[r.Intn(len(disambiguations))].val)
 
-			return genItem(newItem)
+				return genItem(newItem, getPropDists)
+			} else {
+				fmt.Println("cant generate items, error")
+				return genEmptyItem()
+			}
+
 		}
 		//fmt.Println("Found class " + className[0] + " for " + item)
 
@@ -188,12 +209,24 @@ func genItem(item string) ItemData {
 
 		var props = getProps(res)
 
-		return ItemData{item, cN, superClass[0], getSiblings(cN), cats, catsExp, catDists, "", props}
+		var p []propDist
+		if getPropDists {
+			p = getPropDistractors(props)
+		} else {
+			p = []propDist{}
+
+		}
+
+		return ItemData{item, cN, superClass[0], getSiblings(cN), getSiblings(superClass[0]), cats, catsExp, catDists, props, p}
 
 	} else {
-		return genItem(cleanURL(redirect))
+		return genItem(cleanURL(redirect), getPropDists)
 	}
 
+}
+
+func genEmptyItem() ItemData {
+	return ItemData{"null", "null", "null", []info{}, []info{}, []info{}, [][]info{}, []catDist{}, []information{}, []propDist{}}
 }
 
 func getProps(data []information) []information {
@@ -218,7 +251,32 @@ func getProps(data []information) []information {
 	return res
 }
 
+type propDist struct {
+	property    string
+	answer      string
+	distractors []info
+}
+
+func getPropDistractors(props []information) []propDist {
+
+	var res = []propDist{}
+	for _, p := range props {
+		if strings.Contains(p.val.val, "/dbpedia.org/resource/") {
+			//fetch resource and get distractors
+
+			var resource = cleanURL(p.val.val)
+			var resourceItem = genItem(resource, false)
+
+			res = append(res, propDist{p.typ.val, resource, resourceItem.siblings})
+
+		}
+
+	}
+	return res
+}
+
 func queryDBP(item string, typ string) []information {
+
 	// create json from json-string answer
 	var rq = "default-graph-uri=http://dbpedia.org&query=select+distinct+?property+?value%7B%0D%0A++" + typ + "%3A" + item + "+%3Fproperty+%3Fvalue%0D%0A%7D&format=application%2Fsparql-results%2Bjson&CXML_redir_for_subjs=121&CXML_redir_for_hrefs=&timeout=30000&debug=on&run=+Run+Query+"
 	var data = query(rq)
@@ -286,7 +344,7 @@ func getRedirect(item string) string {
 
 func getClassName(queryResult []information) []string {
 	// determine the proper class of the item
-	var classRDF = filterInfo(queryResult, []string{"rdf-syntax-ns#type", "rdf-schema#subClassOf"}, []string{"dbpedia.org/ontology", "owl#Class"})
+	var classRDF = filterInfo(queryResult, []string{"rdf-syntax-ns#type", "rdf-schema#subClassOf"}, []string{"dbpedia.org/ontology", "owl#Class", "owl#Thing"})
 	var classDBO = filterInfo(queryResult, []string{"dbpedia.org/ontology/type", "rdf-schema#subClassOf"}, []string{"dbpedia.org"})
 	var class []information
 	if len(classDBO) == 0 && len(classRDF) == 0 {
@@ -313,7 +371,34 @@ func getClassName(queryResult []information) []string {
 
 		}
 	}
-	var className = class[0].val.val
+
+	//filter classnames
+	var filter = [...]string{"http://dbpedia.org/ontology/Location", "http://dbpedia.org/ontology/Place", "http://dbpedia.org/ontology/Agent", "http://dbpedia.org/ontology/Person", "http://dbpedia.org/ontology/Place", "http://www.w3.org/2002/07/owl#Thing"}
+
+	var fClass []information
+	for _, c := range class {
+
+		var skip = false
+		for _, f := range filter {
+
+			if strings.Contains(c.val.val, f) {
+				skip = true
+				continue
+			}
+		}
+
+		if !skip {
+			fClass = append(fClass, c)
+		}
+	}
+
+	var className = ""
+	if len(fClass) > 0 {
+		className = fClass[0].val.val
+	} else {
+		// TODO: maybe prioritize the first class found
+		className = class[0].val.val
+	}
 
 	var typ string
 
@@ -328,13 +413,19 @@ func getClassName(queryResult []information) []string {
 
 func getSiblings(class string) []info {
 
+	// dbo
 	fmt.Println("getting siblings for: " + class)
 	class = cleanSpecialCharacters(class)
 	var rq = "default-graph-uri=http://dbpedia.org&query=PREFIX+dbo%3A+%3Chttp%3A%2F%2Fdbpedia.org%2Fontology%2F%3E%0D%0APREFIX+res%3A+%3Chttp%3A%2F%2Fdbpedia.org%2Fresource%2F%3E%0D%0ASELECT+%3Fproperty%0D%0AWHERE+%7B+++++++%0D%0A++++++++%3Fproperty+dbo%3Atype+res%3A" + class + "+++%0D%0A%7D&format=application%2Fsparql-results%2Bjson&CXML_redir_for_subjs=121&CXML_redir_for_hrefs=&timeout=30000&debug=on&run=+Run+Query+"
 	var data = query(rq)
-	var res = json2infoArray(data)
+	var dbo = json2infoArray(data)
 
-	return res
+	//rdf
+	rq = "default-graph-uri=http://dbpedia.org&query=PREFIX+dbo%3A+%3Chttp%3A%2F%2Fdbpedia.org%2Fontology%2F%3E%0D%0APREFIX+res%3A+%3Chttp%3A%2F%2Fdbpedia.org%2Fresource%2F%3E%0D%0APREFIX+rdf%3A+%3Chttp%3A%2F%2Fwww.w3.org%2F1999%2F02%2F22-rdf-syntax-ns%23%3E%0D%0ASELECT+%3Fproperty%0D%0AWHERE+%7B%0D%0A+++++++++%3Fproperty+rdf%3Atype+dbo%3A" + class + "+%0D%0A%7D&format=application%2Fsparql-results%2Bjson&CXML_redir_for_subjs=121&CXML_redir_for_hrefs=&timeout=30000&debug=on&run=+Run+Query+"
+	data = query(rq)
+	var rdf = json2infoArray(data)
+
+	return append(dbo, rdf...)
 }
 
 func getCategories(class string) []info {
@@ -450,10 +541,15 @@ func query(rawquery string) []*fastjson.Value {
 - select from multiple entries (Morpeth --> is a school, a place, a band etc.) http://dbpedia.org/ontology/wikiPageDisambiguates DONE
 - get numeric properties --> ez DONE
 
-- find property distractors (e.g. Stanford University --> private university class --> is dbo:type of)
-- if no siblings, find siblings of parent class
-- compare property to siblings (find 4 with same property)
+- find property distractors (e.g. Stanford University --> private university class --> is dbo:type of) DONE!
+- if no siblings, find siblings of parent class DONE --> supersiblings!
+
+
+- create hardcoded list of dbo:country!
 - get depiction (embed html link to image)
+
+
+- compare property to siblings (find 4 with same property) POSTPONE
 
 Question generation
 - manipulate numbers (*1.05) i.e.

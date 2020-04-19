@@ -17,38 +17,48 @@ func main() {
 
 	// TEST AREA
 
-	var item = "Viscount_Morpeth"
-	var q = genItem(item)
+	//var item = "Viscount_Morpeth"
+	//var q = genItem(item)
 
-	q = genItem("Waterloo_Bridge")
+	//q = genItem("Waterloo_Bridge")
 
-	q = genItem("Holyoak")
+	//q = genItem("Holyoak")
 
-	item = "Morpeth_Dock"
-	q = genItem(item)
+	//q = genItem("Dugard")
 
-	item = "Morpeth"
-	q = genItem(item)
+	//item = "Morpeth_Dock"
+	//q = genItem(item)
 
-	item = "Lambeth_Bridge"
-	q = genItem(item)
+	//item = "Morpeth"
+	//q = genItem(item)
 
-	item = "Walnut"
-	q = genItem(item)
+	//var item = "Lambeth_Bridge"
+	//var q = genItem(item)
 
-	item = "McLaren"
-	q = genItem(item)
-
-	item = "Lambeth"
-	q = genItem(item)
-
-	item = "Pall_Mall,_London"
-	q = genItem(item)
-
-	item = "Morpeth_School"
-	q = genItem(item)
+	//var q = genItem("Holyoak", true) //Stanford_University")
+	var q = genItem("Thames", true)
 	fmt.Println(q)
 
+	/*
+		item = "River_Thames"
+		q = genItem(item)
+
+		item = "Walnut"
+		q = genItem(item)
+
+		item = "McLaren"
+		q = genItem(item)
+
+		item = "Lambeth"
+		q = genItem(item)
+
+		item = "Pall_Mall,_London"
+		q = genItem(item)
+
+		item = "Morpeth_School"
+		q = genItem(item)
+		fmt.Println(q)
+	*/
 	// select subject matching class of item
 
 	// END TEST AREA
