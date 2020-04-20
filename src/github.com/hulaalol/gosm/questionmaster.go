@@ -148,6 +148,7 @@ type ItemData struct {
 	catDists      []catDist
 	properties    []information
 	propertyDists []propDist
+	depiction     string
 }
 
 func genItem(item string, getPropDists bool) ItemData {
@@ -211,13 +212,13 @@ func genItem(item string, getPropDists bool) ItemData {
 
 		var p []propDist
 		if getPropDists {
-			p = getPropDistractors(props)
+			p = getPropDistractor(props)
 		} else {
 			p = []propDist{}
 
 		}
 
-		return ItemData{item, cN, superClass[0], getSiblings(cN), getSiblings(superClass[0]), cats, catsExp, catDists, props, p}
+		return ItemData{item, cN, superClass[0], getSiblings(cN), getSiblings(superClass[0]), cats, catsExp, catDists, props, p, getDepiction(item)}
 
 	} else {
 		return genItem(cleanURL(redirect), getPropDists)
@@ -226,7 +227,7 @@ func genItem(item string, getPropDists bool) ItemData {
 }
 
 func genEmptyItem() ItemData {
-	return ItemData{"null", "null", "null", []info{}, []info{}, []info{}, [][]info{}, []catDist{}, []information{}, []propDist{}}
+	return ItemData{"null", "null", "null", []info{}, []info{}, []info{}, [][]info{}, []catDist{}, []information{}, []propDist{}, "null"}
 }
 
 func getProps(data []information) []information {
@@ -257,6 +258,33 @@ type propDist struct {
 	distractors []info
 }
 
+func getPropDistractor(props []information) []propDist {
+
+	// get only one item
+
+	p := rand.Perm(len(props))
+	dest := make([]information, len(props))
+
+	for i, v := range p {
+		dest[v] = props[i]
+	}
+
+	var res = []propDist{}
+	for _, p := range dest {
+		if strings.Contains(p.val.val, "/dbpedia.org/resource/") {
+			//fetch resource and get distractors
+
+			var resource = cleanURL(p.val.val)
+			var resourceItem = genItem(resource, false)
+
+			res = append(res, propDist{p.typ.val, resource, resourceItem.siblings})
+			break
+		}
+
+	}
+	return res
+}
+
 func getPropDistractors(props []information) []propDist {
 
 	var res = []propDist{}
@@ -268,7 +296,6 @@ func getPropDistractors(props []information) []propDist {
 			var resourceItem = genItem(resource, false)
 
 			res = append(res, propDist{p.typ.val, resource, resourceItem.siblings})
-
 		}
 
 	}
@@ -449,6 +476,20 @@ func getCategories(class string) []info {
 	return res
 }
 
+func getDepiction(item string) string {
+	fmt.Println("getting depiction of " + item)
+	item = cleanSpecialCharacters(item)
+	var rq = "default-graph-uri=http://dbpedia.org&query=PREFIX+res%3A+%3Chttp%3A%2F%2Fdbpedia.org%2Fresource%2F%3E%0D%0APREFIX+foaf%3A%3Chttp%3A%2F%2Fxmlns.com%2Ffoaf%2F0.1%2F%3E%0D%0ASELECT+%3Fproperty+WHERE+%7B%0D%0A%09+++%09+res%3A" + item + "+foaf%3Adepiction+%3Fproperty%0D%0A%09+++%7D&format=application%2Fsparql-results%2Bjson&CXML_redir_for_subjs=121&CXML_redir_for_hrefs=&timeout=30000&debug=on&run=+Run+Query+"
+	var data = query(rq)
+	var res = json2infoArray(data)
+
+	if res == nil {
+		return "null"
+	} else {
+		return res[0].val
+	}
+}
+
 func expandCategory(category string) []info {
 	/*
 	   PREFIX res: <http://dbpedia.org/resource/>
@@ -526,7 +567,7 @@ func query(rawquery string) []*fastjson.Value {
 
 	Url.Path += "/sparql"
 	Url.RawQuery = rawquery
-	fmt.Println("Querying DBPedia with: " + Url.String())
+	//fmt.Println("Querying DBPedia with: " + Url.String())
 
 	return getJSON(Url.String()).Get("results", "bindings").GetArray()
 }
@@ -547,6 +588,7 @@ func query(rawquery string) []*fastjson.Value {
 
 - create hardcoded list of dbo:country!
 - get depiction (embed html link to image)
+- generate Questions YAY :)
 
 
 - compare property to siblings (find 4 with same property) POSTPONE

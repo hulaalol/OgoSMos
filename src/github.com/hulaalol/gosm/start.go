@@ -36,7 +36,7 @@ func main() {
 	//var q = genItem(item)
 
 	//var q = genItem("Holyoak", true) //Stanford_University")
-	var q = genItem("Thames", true)
+	var q = genItem("Lambeth_Bridge", true)
 	fmt.Println(q)
 
 	/*
