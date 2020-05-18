@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"time"
 )
@@ -39,8 +38,8 @@ func main() {
 	//var q = genItem("Lambeth_Bridge", true)
 	//fmt.Println(q)
 
-	var q = genQuestion("Walnut")
-	fmt.Println(q)
+	//var q = genQuestion("Lloyd")
+	//fmt.Println(q)
 
 	/*
 		item = "River_Thames"

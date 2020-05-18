@@ -167,8 +167,11 @@ $(document).ready(function(){
     mymap = L.map('mapid',{renderer: L.canvas()}).setView(London, 15);
 
 
-    selectCar();
-    selectDistance();
+    //selectCar();
+    mode= "car";
+    metric = "distance";
+    graphHidden = true;
+    //selectDistance();
     
 
     //mymap.on("moveend", async function () {
@@ -308,9 +311,191 @@ function sendMarker(marker,type){
 }
 
 
+/**
+ * Shuffles array in place. ES6 version
+ * @param {Array} a items An array containing the items.
+ */
+function shuffle(a) {
+    for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+}
+
+
+function setQuestion(question){
+
+    document.getElementById("question").innerHTML = question.Item;
+
+    var answers = [question.Answer,question.D1,question.D2,question.D3];
+    var aIdx = ['1','2','3','4'];
+    aIdx = shuffle(aIdx);
+
+    for(var i=0;i<aIdx.length;i++){
+        document.getElementById("a"+aIdx[i]).innerHTML = answers[i];
+    }
+    document.getElementById("a"+aIdx[0]).style.fontWeight="bold";
+
+    
+}
+
+function pickQuestion(questions){
+    var q= questions[Math.floor(Math.random() * questions.length)];
+    if(q.Item == "null"){
+        return pickQuestion(questions)
+    }else{
+        return q;
+    }
+}
+
+function checkQuestions(questions){
+    for(i=0; i<questions.length;i++){
+        if(questions[i].Item != "null"){
+            return true;
+        }
+    }
+    return false;
+}
 
 
 
+function quizNav(){
+    activateLoader();
+    console.log("map cleaned...")
+
+
+    let promise = new Promise((resolve, reject) => {
+
+        document.getElementById("mapid").setAttribute("class", "locked");
+
+        var xhr = new XMLHttpRequest();
+        var url = "/quizNav";
+        xhr.open("POST", url, true);
+        xhr.setRequestHeader("Content-Type", "application/json");
+    
+        xhr.onreadystatechange = function () {
+        if (xhr.readyState === 4 && xhr.status === 200) {
+            
+
+            germanyLayer = null;
+            if(!graphHidden){
+                hideGraph();
+            }
+        
+            mymap.eachLayer(function (layer) {
+                if(layer.id && layer.id.includes("path")){
+                    mymap.removeLayer(layer);
+                }
+            });
+
+            var json = JSON.parse(xhr.responseText);
+
+
+            if(json.Distance == 0){
+                document.getElementById("routeinfo").innerHTML = "Ops! Couldn't find way?! Check if the markers are placed in a lake, shopping centre or military base :)";
+
+            }else{
+
+                var correctPath = []
+                for(i = 0; i< json.CurrentPos.length; i++){
+                    var edge = json.CurrentPos[i].C;
+                    correctPath.push([[edge[0], edge[1]], [edge[2], edge[3]]]);
+                }
+
+                var cppl = L.polyline(correctPath, {color: "green", interactive: false});
+                cppl.id = "path";
+                cppl.addTo(mymap);
+
+                for(i =0; i< json.DistractorEdges.length; i++){
+                    var wrongPath = [];
+                    var edge =json.DistractorEdges[i].C;
+                    wrongPath.push([[edge[0], edge[1]], [edge[2], edge[3]]]);
+
+                    var wppl = L.polyline(wrongPath, {color:"red",interactive: false});
+                    wppl.id = "dE"+i;
+                    wppl.addTo(mymap);
+                }
+
+
+
+                if(checkQuestions(json.Question)){
+                    var q = pickQuestion(json.Question);
+                    setQuestion(q);
+                }else{
+                    console.log("no valid question could be generated :(");
+                }
+
+
+
+
+
+
+                mymap.invalidateSize()
+    
+                //update textbox
+                /*
+                if(metric == "distance"){
+    
+                    if(json.Distance > 1000){
+                        var km = (json.Distance/1000).toFixed(2);
+                        var t = km+"km"
+                    }else{
+                        var t= json.Distance+"m"
+                    }
+                    var text = "Found path for "+mode+" with a distance of "+t;
+                }
+    
+                if(metric == "time"){
+    
+                    if(mode!= "car"){
+                        if(mode=="bike"){
+                            speed = 15;
+                        }else if(mode=="pedestrian"){
+                            speed = 5;
+                        }
+                        time = 3600 / ((speed*1000) / json.Distance);
+                    }else{
+                        time = json.Distance;
+                    }
+    
+    
+                        var t = time+" seconds"
+                        if(time > 60){
+                            // give minutes
+                            var t = Math.floor(time/60)+" minutes and "+Math.floor(time%60)+" seconds"
+                        }
+        
+                        if (time > 3600){
+                            // give hours
+                            var t = Math.floor(time/3600)+" hours and "+Math.floor(time%60)+" minutes"
+                        }
+    
+                    var text = "Found path for "+mode+" with a traveltime of "+t;
+                }
+                */
+    
+                //document.getElementById("routeinfo").innerHTML = text;
+
+                console.log("finished calculating shortest path...")
+            }
+
+            //unlock map
+            document.getElementById("mapid").setAttribute("class", "unlocked");
+            deactivateLoader();
+            resolve(1)
+        }
+        }
+
+        var data = JSON.stringify({"do": "quiz"});
+    
+        console.log("sending json request to server: "+data)
+        xhr.send(data);
+
+      });
+
+
+}
 
 
 
@@ -520,7 +705,7 @@ if(!graphHidden){
     
     document.getElementById("hideGraph").innerHTML = "Hide graph";
     //document.getElementById("hideGraph").style.background='#4f4f4f';
-    graphHidden = false;
+    graphHidden = true;
 }
 }
 

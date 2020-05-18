@@ -24,7 +24,7 @@
 <body>
     <div class="btn-group">
         <!-- <button id="autoupdate" onclick="toggleMapUpdate()">Toggle MapUpdate</button> -->
-        <button id="hideGraph" onclick="hideGraph()">Hide graph</button>
+    <!-- <button id="hideGraph" onclick="hideGraph()">Hide graph</button>
         <button id="car" onclick=selectCar()>Car</button>
         <button id="bike" onclick="selectBike()">Cyclist</button>
         <button id="pedestrian" onclick="selectPede()">Pedestrian</button>
@@ -33,6 +33,9 @@
         <button id="time" onclick="selectTime()">Traveltime</button>
 
         <button id="calculate route" onclick="calcRoute()">Calculate Route</button>
+    -->
+        <button id="quizNav" onclick="quizNav()">Start Quiz Navigation</button>
+
 
         <div id="loader" class="loaderC"></div>
 
@@ -41,12 +44,48 @@
     <div id="routeinfo"></div>
     <div class="unlocked" id="mapid"></div>
 
-  </div>   
+  </div>
+  
+  <div id="questionWindowContainer">
+
+    <table id ="questionWindow">
+      <tr id="question">
+        Here comes the question
+
+      </tr>
+
+      <tr>
+        <td id="a1">
+          answer1
+        </td>
+        <td id="a2">
+          answer2
+        </td>
 
 
+      </tr>
 
+      <tr>
+        <td id="a3">
+          answer3
+        </td>
+        <td id="a4">
+          answer4
+        </td>
+      </tr>
 
+    </table>
 
+    <!--
+    <div id="question"></div>
+    <div id="answers">
+      <div id="a1"></div>
+      <div id="a2"></div>
+      <div id="a3"></div>
+      <div id="a4"></div>
+    </div> -->
+
+  </div>
 
 
 </body>

@@ -119,6 +119,24 @@ type SNode struct {
 	streetname string
 }
 
+func getEdges(node Node) []SNode {
+	var eOutIdxStart = finalOffsetsOut[node.idx]
+	var eOutIdxEnd = finalOffsetsOut[node.idx+1]
+	var eOut = finalEdgesOut[eOutIdxStart:eOutIdxEnd]
+	var result = make([]SNode, len(eOut))
+
+	for idx, e := range eOut {
+		result[idx] = SNode{e.n2idx, finalNodes[e.n2idx].lat, finalNodes[e.n2idx].lon, e.streetname}
+	}
+	return result
+}
+
+func getQuizPath(origin Node, destiny Node, mode string, metric string) (uint32, []SNode, []SNode) {
+	var distance, path = getPath(origin, destiny, mode, metric)
+	var edgeOptions = getEdges(origin)
+	return distance, path, edgeOptions
+}
+
 func getPath(origin Node, destiny Node, mode string, metric string) (uint32, []SNode) {
 
 	h := newHeap()
@@ -141,18 +159,23 @@ func getPath(origin Node, destiny Node, mode string, metric string) (uint32, []S
 			path := make([]uint32, 0)
 			snames := make([]string, 0)
 
-			for c != origin.idx {
+			//for c != origin.idx {
+			for true {
 				path = append(path, c)
 				snames = append(snames, t2[c].streetname)
-				c = t2[c].came_from
 
+				if c == start.idx {
+					break
+				}
+
+				c = t2[c].came_from
 			}
 
 			var result = make([]SNode, len(path))
 			for idx, n := range path {
-
 				result[idx] = SNode{n, finalNodes[n].lat, finalNodes[n].lon, snames[idx]}
 			}
+			result = append([]SNode{}, result...)
 			return p.value, result
 		}
 

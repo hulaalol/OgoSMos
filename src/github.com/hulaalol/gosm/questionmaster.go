@@ -12,7 +12,9 @@ import (
 	"github.com/valyala/fastjson"
 )
 
-var stopwords = [...]string{"weg", "straße", "strasse", "allee", "gasse", "Straße", "Weg", "Strasse", "Allee"}
+var stopwords = [...]string{"street", "road", "highway", "way", "avenue", "strait", "drive", "lane", "grove", "gardens", "place", "circus", "crescent", "bypass", "close", "square", "hill", "mews", "vale", "rise", "row", "mead", "wharf", "walk"}
+
+//var stopwordsGER = [...]string{"weg", "straße", "strasse", "allee", "gasse", "Straße", "Weg", "Strasse", "Allee"}
 var syllables = [...]string{"er"}
 
 var propBlacklist = [...]string{"rdf-syntax-ns#type", "wikiPageRevisionID", "owl#sameAs", "rdf-schema#comment", "rdf-schema#label", "#wasDerivedFrom", "hypernym", "depiction", "wikiPageExternalLink", "wikiPageID", "subject", "isPrimaryTopicOf", "thumbnail", "abstract",
@@ -67,17 +69,20 @@ func filterInfo(info []information, filterType []string, filterValue []string) [
 func cleanStreetname(s string) string {
 	for _, sw := range stopwords {
 		s = strings.ReplaceAll(s, sw, "")
+		s = strings.ReplaceAll(s, strings.Title(sw), "")
 	}
 
-	for _, sy := range syllables {
+	/*
+		for _, sy := range syllables {
 
-		var syLength = len(sy)
-		var sLength = len(s)
+			var syLength = len(sy)
+			var sLength = len(s)
 
-		if strings.Compare(s[sLength-1-syLength:sLength], sy) == 1 {
-			s = s[0 : sLength-1-syLength]
+			if strings.Compare(s[sLength-1-syLength:sLength], sy) == 1 {
+				s = s[0 : sLength-1-syLength]
+			}
 		}
-	}
+	*/
 	return s
 }
 
@@ -757,10 +762,20 @@ func questionPropLiteral(d ItemData) Question {
 
 func genQuestion(item string) []Question {
 
+	item = cleanStreetname(item)
+	item = strings.TrimSpace(item)
+
+	item = strings.ReplaceAll(item, " ", "_")
+
+	fmt.Println("trying to generate a question for: " + item)
 	var d = genItem(item, true)
 
-	return []Question{questionCatDist(d), questionSiblingClasses(d), questionPropLiteral(d), questionPropLiteral(d), questionPropLiteral(d), questionPropLiteral(d), questionPropLiteral(d)}
+	for d.item == "null" {
+		item = item[:len(item)-1]
+		d = genItem(item, true)
+	}
 
+	return []Question{questionCatDist(d), questionSiblingClasses(d), questionPropLiteral(d), questionPropLiteral(d), questionPropLiteral(d), questionPropLiteral(d), questionPropLiteral(d)}
 }
 
 func getEmptyQuestion() Question {

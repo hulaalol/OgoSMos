@@ -48,6 +48,7 @@ type LeafletMarker struct {
 }
 
 type LeafletEdge struct {
+	// C are the 4 coordinates lat,lon of start and end of edge
 	C []float32
 	N string
 }
@@ -61,6 +62,22 @@ type LeafletEdgeArrayDijkstra struct {
 	Name     string
 	Data     []LeafletEdge
 	Distance uint32
+}
+
+type QuestionJS struct {
+	Item   string
+	Answer string
+	D1     string
+	D2     string
+	D3     string
+}
+
+type QuizCrumb struct {
+	Name             string
+	CurrentPos       []LeafletEdge
+	DistractorEdges  []LeafletEdge
+	DistanceToTarget uint32
+	Question         []QuestionJS
 }
 
 //function to filter out edges for a certain zoom level
@@ -94,10 +111,25 @@ func filterEdges(NWtlLat float32, NWtlLon float32, SEbrLat float32, SEbrLon floa
 
 }
 
+func convQuizCrumb2JSON(path []LeafletEdge, distance uint32, edgeOptions []LeafletEdge, questions []Question) []byte {
+
+	var qjs = make([]QuestionJS, len(questions))
+	for idx, q := range questions {
+		qjs[idx] = QuestionJS{q.item, q.answer, q.d1, q.d2, q.d3}
+	}
+
+	profile := QuizCrumb{"quiz", path, edgeOptions, distance, qjs}
+	js, err := json.Marshal(profile)
+	if err != nil {
+		log.Printf("error while converting LeafletEdgeArray to JSON")
+		return []byte{0}
+	}
+	return js
+}
+
 func convLeafletEdge2JSONDijkstra(data []LeafletEdge, distance uint32) []byte {
 
 	log.Printf("%s%d", "len of json-map data to convert: ", len(data))
-
 	profile := LeafletEdgeArrayDijkstra{"edges", data, distance}
 	js, err := json.Marshal(profile)
 	if err != nil {
@@ -118,6 +150,78 @@ func convLeafletEdge2JSON(data []LeafletEdge) []byte {
 		return []byte{0}
 	}
 	return js
+}
+
+func reversePath(s []SNode) []SNode {
+
+	for i, j := 0, len(s)-1; i < j; i, j = i+1, j-1 {
+		s[i], s[j] = s[j], s[i]
+	}
+	return s
+}
+
+func quizNav(w http.ResponseWriter, r *http.Request) {
+
+	log.Println("received request for quiz navigation")
+
+	switch r.Method {
+
+	case "GET":
+		log.Println("there is no GET method for quiz navigation!")
+
+	case "POST":
+		decoder := json.NewDecoder(r.Body)
+		var req DijkstraInput
+		err := decoder.Decode(&req)
+		if err != nil {
+			panic(err)
+		}
+
+		var distance, path, edgeOptions = getQuizPath(start, finish, req.Mode, req.Metric)
+
+		// reverse path
+		path = reversePath(path)
+
+		var currentStreet = path[0].streetname
+		var question = genQuestion(currentStreet)
+		var coords = make([]LeafletEdge, 0)
+		var eOpts = make([]LeafletEdge, 0)
+
+		// build correct path until next junction
+		for idx, _ := range path {
+
+			// abort if finished navigating current street
+			if path[idx].streetname != currentStreet {
+				break
+			}
+
+			if idx != len(path)-1 {
+				coords = append(coords, LeafletEdge{[]float32{finalNodes[path[idx].idx].lat, finalNodes[path[idx].idx].lon, finalNodes[path[idx+1].idx].lat, finalNodes[path[idx+1].idx].lon}, path[idx].streetname})
+			}
+		}
+
+		// wrong turns if player fails to answer question
+		for idx, _ := range edgeOptions {
+			var k = true
+			// dont use edges present in the path!
+			for idx2, _ := range path {
+				if edgeOptions[idx].idx == path[idx2].idx {
+					k = false
+				}
+			}
+			if k {
+				eOpts = append(eOpts, LeafletEdge{[]float32{finalNodes[path[0].idx].lat, finalNodes[path[0].idx].lon, finalNodes[edgeOptions[idx].idx].lat, finalNodes[edgeOptions[idx].idx].lon}, edgeOptions[idx].streetname})
+
+			}
+		}
+
+		var answer = convQuizCrumb2JSON(coords, distance, eOpts, question)
+
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(answer)
+
+	}
+
 }
 
 func dijkstra(w http.ResponseWriter, r *http.Request) {
@@ -159,7 +263,7 @@ func dijkstra(w http.ResponseWriter, r *http.Request) {
 
 		var answer = convLeafletEdge2JSONDijkstra(coords, distance)
 
-		fmt.Println(answer)
+		//fmt.Println(answer)
 		w.Header().Set("Content-Type", "application/json")
 		w.Write(answer)
 
@@ -259,6 +363,7 @@ func startWebserver() {
 	http.HandleFunc("/", webHandler)
 	http.HandleFunc("/dijkstra", dijkstra)
 	http.HandleFunc("/marker", setMarker)
+	http.HandleFunc("/quizNav", quizNav)
 
 	log.Fatal(http.ListenAndServe(":8080", nil))
 
