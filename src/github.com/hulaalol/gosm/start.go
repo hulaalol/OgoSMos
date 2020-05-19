@@ -63,6 +63,15 @@ func main() {
 	*/
 	// select subject matching class of item
 
+	//var q = genQuestion("Bel,_Syria")
+	//fmt.Println(q)
+
+	//var q = genQuestion("Duke")
+	//fmt.Println(q)
+
+	//q = genQuestion("Queen_Victoria")
+	//fmt.Println(q)
+
 	// END TEST AREA
 
 	startTime := time.Now()

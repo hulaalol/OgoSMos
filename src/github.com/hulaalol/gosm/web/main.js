@@ -460,7 +460,7 @@ function quizNav(){
                 }
 
                 var cppl = L.polyline(correctPath, {color: "green", interactive: false});
-                cppl.id = "path";
+                cppl.id = "correctPath";
                 //cppl.addTo(mymap);
 
                 var wppls = [];
