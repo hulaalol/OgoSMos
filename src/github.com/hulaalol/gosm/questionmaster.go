@@ -17,9 +17,10 @@ var stopwordsItem = [...]string{"great", "the", "bridge", "high"}
 
 //var stopwordsGER = [...]string{"weg", "straße", "strasse", "allee", "gasse", "Straße", "Weg", "Strasse", "Allee"}
 var syllables = [...]string{"er"}
+var randlim = "%0D%0A%09%09ORDER+BY+RAND%28%29%0D%0A%09%09limit+10"
 
 var propBlacklist = [...]string{"rdf-syntax-ns#type", "wikiPageRevisionID", "owl#sameAs", "rdf-schema#comment", "rdf-schema#label", "#wasDerivedFrom", "hypernym", "depiction", "wikiPageExternalLink", "wikiPageID", "subject", "isPrimaryTopicOf", "thumbnail", "abstract",
-	"caption", "labelPosition", "popRefCbs", "popRefName", "rdf-schema#seeAlso", "property/longEw", "foaf/0.1/homepage", "property/name", "/foaf/0.1/name", "ontology/picture", "ontology/type", "dbpedia.org/property/id", "property/imageSize", "/property/title", "property/wordnet_type", "/property/note", "/property/servingSize", "/property/sourceUsda", "staticImage", "/georss/point", "/geo/wgs84", "/ontology/wikiPageDisambiguates"}
+	"caption", "imageCaption", "labelPosition", "locatorMap", "popRefCbs", "differentFrom", "popRefName", "rdf-schema#seeAlso", "property/longEw", "foaf/0.1/homepage", "property/name", "/foaf/0.1/name", "ontology/picture", "ontology/type", "dbpedia.org/property/id", "property/imageSize", "/property/title", "property/wordnet_type", "/property/note", "/property/servingSize", "/property/sourceUsda", "staticImage", "/georss/point", "/geo/wgs84", "/ontology/wikiPageDisambiguates"}
 
 type information struct {
 	typ info
@@ -211,6 +212,8 @@ func genItem(item string, getPropDists bool) ItemData {
 					}
 				}
 			}
+			return genEmptyItem()
+			//return genItem(item[:len(item)-1], getPropDists)
 		}
 
 		// TODO: catch weird dbpedia classes
@@ -221,7 +224,9 @@ func genItem(item string, getPropDists bool) ItemData {
 			className = getClassName(res)
 		}
 
-		if className[0] == "null" {
+		var props = getProps(res)
+
+		if className[0] == "null" || len(props) == 0 {
 			// this is not an entity --> search for disambiguations
 
 			var disambiguations = getDisambiguations(item)
@@ -269,7 +274,6 @@ func genItem(item string, getPropDists bool) ItemData {
 
 			var catDists = getCategoryDistractors(cats, catsExp)
 		*/
-		var props = getProps(res)
 
 		var p []propDist
 		if getPropDists {
@@ -423,6 +427,7 @@ func getDisambiguations(item string) []info {
 	*/
 	fmt.Println("getting disambiguations for: " + item)
 	item = cleanSpecialCharacters(item)
+
 	var rq = "default-graph-uri=http%3A%2F%2Fdbpedia.org&query=PREFIX+res%3A+%3Chttp%3A%2F%2Fdbpedia.org%2Fresource%2F%3E%0D%0APREFIX+dbo%3A+%3Chttp%3A%2F%2Fdbpedia.org%2Fontology%2F%3E%0D%0A%0D%0ASELECT+%3Fproperty+WHERE+%7B%0D%0A%09++++++res%3A" + item + "+dbo%3AwikiPageDisambiguates+%3Fproperty%0D%0A%7D&format=application%2Fsparql-results%2Bjson&CXML_redir_for_subjs=121&CXML_redir_for_hrefs=&timeout=30000&debug=on&run=+Run+Query+"
 	var data = query(rq)
 	var res = json2infoArray(data)
@@ -439,7 +444,8 @@ func getHypernyms(resource string) []info {
 	*/
 	fmt.Println("getting hypernyms for: " + resource)
 
-	var rq = "default-graph-uri=http://dbpedia.org&query=%09%09SELECT+%3Fproperty+WHERE+%7B%0D%0A%09%09%09%3Fproperty+%3Chttp%3A%2F%2Fpurl.org%2Flinguistics%2Fgold%2Fhypernym%3E+%3Chttp%3A%2F%2Fdbpedia.org%2Fresource%2F" + resource + "%3E%0D%0A%09%09%7D%0D%0A%09%09ORDER+BY+RAND%28%29%0D%0A%09%09limit+10&format=application%2Fsparql-results%2Bjson&CXML_redir_for_subjs=121&CXML_redir_for_hrefs=&timeout=30000&debug=on&run=+Run+Query+"
+	var rq = "default-graph-uri=http://dbpedia.org&query=%09%09SELECT+%3Fproperty+WHERE+%7B%0D%0A%09%09%09%3Fproperty+%3Chttp%3A%2F%2Fpurl.org%2Flinguistics%2Fgold%2Fhypernym%3E+%3Chttp%3A%2F%2Fdbpedia.org%2Fresource%2F" + resource + "%3E%0D%0A%09%09%7D&format=application%2Fsparql-results%2Bjson&CXML_redir_for_subjs=121&CXML_redir_for_hrefs=&timeout=30000&debug=on&run=+Run+Query+"
+	//var rq = "default-graph-uri=http://dbpedia.org&query=%09%09SELECT+%3Fproperty+WHERE+%7B%0D%0A%09%09%09%3Fproperty+%3Chttp%3A%2F%2Fpurl.org%2Flinguistics%2Fgold%2Fhypernym%3E+%3Chttp%3A%2F%2Fdbpedia.org%2Fresource%2F" + resource + "%3E%0D%0A%09%09%7D%0D%0A%09%09ORDER+BY+RAND%28%29%0D%0A%09%09limit+10&format=application%2Fsparql-results%2Bjson&CXML_redir_for_subjs=121&CXML_redir_for_hrefs=&timeout=30000&debug=on&run=+Run+Query+"
 	var data = query(rq)
 	var res = json2infoArray(data)
 	return res
@@ -546,12 +552,12 @@ func getSiblings(class string) []info {
 	// dbo
 	fmt.Println("getting siblings for: " + class)
 	class = cleanSpecialCharacters(class)
-	var rq = "default-graph-uri=http://dbpedia.org&query=PREFIX+dbo%3A+%3Chttp%3A%2F%2Fdbpedia.org%2Fontology%2F%3E%0D%0APREFIX+res%3A+%3Chttp%3A%2F%2Fdbpedia.org%2Fresource%2F%3E%0D%0ASELECT+%3Fproperty%0D%0AWHERE+%7B+++++++%0D%0A++++++++%3Fproperty+dbo%3Atype+res%3A" + class + "+++%0D%0A%7D&format=application%2Fsparql-results%2Bjson&CXML_redir_for_subjs=121&CXML_redir_for_hrefs=&timeout=30000&debug=on&run=+Run+Query+"
+	var rq = "default-graph-uri=http://dbpedia.org&query=PREFIX+dbo%3A+%3Chttp%3A%2F%2Fdbpedia.org%2Fontology%2F%3E%0D%0APREFIX+res%3A+%3Chttp%3A%2F%2Fdbpedia.org%2Fresource%2F%3E%0D%0ASELECT+%3Fproperty%0D%0AWHERE+%7B+++++++%0D%0A++++++++%3Fproperty+dbo%3Atype+res%3A" + class + "+++%0D%0A%7D" + randlim + "&format=application%2Fsparql-results%2Bjson&CXML_redir_for_subjs=121&CXML_redir_for_hrefs=&timeout=30000&debug=on&run=+Run+Query+"
 	var data = query(rq)
 	var dbo = json2infoArray(data)
 
 	//rdf
-	rq = "default-graph-uri=http://dbpedia.org&query=PREFIX+dbo%3A+%3Chttp%3A%2F%2Fdbpedia.org%2Fontology%2F%3E%0D%0APREFIX+res%3A+%3Chttp%3A%2F%2Fdbpedia.org%2Fresource%2F%3E%0D%0APREFIX+rdf%3A+%3Chttp%3A%2F%2Fwww.w3.org%2F1999%2F02%2F22-rdf-syntax-ns%23%3E%0D%0ASELECT+%3Fproperty%0D%0AWHERE+%7B%0D%0A+++++++++%3Fproperty+rdf%3Atype+dbo%3A" + class + "+%0D%0A%7D&format=application%2Fsparql-results%2Bjson&CXML_redir_for_subjs=121&CXML_redir_for_hrefs=&timeout=30000&debug=on&run=+Run+Query+"
+	rq = "default-graph-uri=http://dbpedia.org&query=PREFIX+dbo%3A+%3Chttp%3A%2F%2Fdbpedia.org%2Fontology%2F%3E%0D%0APREFIX+res%3A+%3Chttp%3A%2F%2Fdbpedia.org%2Fresource%2F%3E%0D%0APREFIX+rdf%3A+%3Chttp%3A%2F%2Fwww.w3.org%2F1999%2F02%2F22-rdf-syntax-ns%23%3E%0D%0ASELECT+%3Fproperty%0D%0AWHERE+%7B%0D%0A+++++++++%3Fproperty+rdf%3Atype+dbo%3A" + class + "+%0D%0A%7D" + randlim + "&format=application%2Fsparql-results%2Bjson&CXML_redir_for_subjs=121&CXML_redir_for_hrefs=&timeout=30000&debug=on&run=+Run+Query+"
 	data = query(rq)
 	var rdf = json2infoArray(data)
 
@@ -570,7 +576,7 @@ func getSiblingClasses(superClass string, class string) []info {
 
 	fmt.Println("getting sibling classes for superclass " + superClass)
 	superClass = cleanSpecialCharacters(superClass)
-	var rq = "default-graph-uri=http://dbpedia.org&query=PREFIX+dbo%3A+%3Chttp%3A%2F%2Fdbpedia.org%2Fontology%2F%3E%0D%0APREFIX+rdfs%3A+%3Chttp%3A%2F%2Fwww.w3.org%2F2000%2F01%2Frdf-schema%23%3E%0D%0A%0D%0ASELECT+%3Fproperty+WHERE+%7B%0D%0A%09+++%09+%3Fproperty+rdfs%3AsubClassOf+dbo%3A" + superClass + "%0D%0A%09+++%7D&format=application%2Fsparql-results%2Bjson&CXML_redir_for_subjs=121&CXML_redir_for_hrefs=&timeout=30000&debug=on&run=+Run+Query+"
+	var rq = "default-graph-uri=http://dbpedia.org&query=PREFIX+dbo%3A+%3Chttp%3A%2F%2Fdbpedia.org%2Fontology%2F%3E%0D%0APREFIX+rdfs%3A+%3Chttp%3A%2F%2Fwww.w3.org%2F2000%2F01%2Frdf-schema%23%3E%0D%0A%0D%0ASELECT+%3Fproperty+WHERE+%7B%0D%0A%09+++%09+%3Fproperty+rdfs%3AsubClassOf+dbo%3A" + superClass + "%0D%0A%09+++%7D" + randlim + "&format=application%2Fsparql-results%2Bjson&CXML_redir_for_subjs=121&CXML_redir_for_hrefs=&timeout=30000&debug=on&run=+Run+Query+"
 	var data = query(rq)
 
 	var d = json2infoArray(data)
@@ -834,7 +840,8 @@ func questionPropLiteral(d ItemData) Question {
 		// get distractors
 
 		fmt.Println("getting property distractors for property " + p.typ.val)
-		var rq = "default-graph-uri=http://dbpedia.org&query=%0D%0A%0D%0APREFIX+dbo%3A+%3Chttp%3A%2F%2Fdbpedia.org%2Fontology%2F%3E%0D%0A%0D%0ASELECT++%3Fp+%3Fproperty+WHERE+%7B%0D%0A%09+++%09++%3Fp+a+dbo%3A" + d.superClass + "+%3B+%3C" + p.typ.val + "%3E%3Fproperty+.++%0D%0A%09+++%7D%0D%0ALIMIT+500&format=application%2Fsparql-results%2Bjson&CXML_redir_for_subjs=121&CXML_redir_for_hrefs=&timeout=30000&debug=on&run=+Run+Query+"
+		var rq = "default-graph-uri=http://dbpedia.org&query=%0D%0A%0D%0APREFIX+dbo%3A+%3Chttp%3A%2F%2Fdbpedia.org%2Fontology%2F%3E%0D%0A%0D%0ASELECT++%3Fp+%3Fproperty+WHERE+%7B%0D%0A%09+++%09++%3Fp+a+dbo%3A" + d.superClass + "+%3B+%3C" + p.typ.val + "%3E%3Fproperty+.++%0D%0A%09+++%7D" + randlim + "&format=application%2Fsparql-results%2Bjson&CXML_redir_for_subjs=121&CXML_redir_for_hrefs=&timeout=30000&debug=on&run=+Run+Query+"
+		//var rq = "default-graph-uri=http://dbpedia.org&query=%0D%0A%0D%0APREFIX+dbo%3A+%3Chttp%3A%2F%2Fdbpedia.org%2Fontology%2F%3E%0D%0A%0D%0ASELECT++%3Fp+%3Fproperty+WHERE+%7B%0D%0A%09+++%09++%3Fp+a+dbo%3A" + d.superClass + "+%3B+%3C" + p.typ.val + "%3E%3Fproperty+.++%0D%0A%09+++%7D%0D%0ALIMIT+500&format=application%2Fsparql-results%2Bjson&CXML_redir_for_subjs=121&CXML_redir_for_hrefs=&timeout=30000&debug=on&run=+Run+Query+"
 
 		//var test ="default-graph-uri=http%3A%2F%2Fdbpedia.org&query=PREFIX+res%3A+%3Chttp%3A%2F%2Fdbpedia.org%2Fresource%2F%3E%0D%0APREFIX+dbo%3A+%3Chttp%3A%2F%2Fdbpedia.org%2Fontology%2F%3E%0D%0A%0D%0ASELECT+%3Fproperty+WHERE+%7B%0D%0A+++++dbo%3ABridge+%3Chttp%3A%2F%2Fdbpedia.org%2Fproperty%2Flength%3E+%3Fproperty+.%7D+LIMIT+50&format=text%2Fhtml&CXML_redir_for_subjs=121&CXML_redir_for_hrefs=&timeout=30000&debug=on&run=+Run+Query+"
 
@@ -856,7 +863,8 @@ func questionPropLiteral(d ItemData) Question {
 				//var prop = cleanURL(p.typ.val)
 				//"+%3B+%3C" + p.typ.val + "%3E%3F
 
-				rq = "default-graph-uri=http://dbpedia.org&query=PREFIX+res%3A+%3Chttp%3A%2F%2Fdbpedia.org%2Fresource%2F%3E%0D%0APREFIX+dbo%3A+%3Chttp%3A%2F%2Fdbpedia.org%2Fontology%2F%3E%0D%0APREFIX+dbp%3A+%3Chttp%3A%2F%2Fdbpedia.org%2Fproperty%2F%3E%0D%0A%0D%0ASELECT+%3Fproperty+WHERE+%7B%0D%0A+++++%3Fsubject+%3C" + strings.ReplaceAll(p.typ.val, "#", "%23") + "%3E%3Fproperty%0D%0A%7D%0D%0AORDER+BY+RAND%28%29%0D%0Alimit+10&format=application%2Fsparql-results%2Bjson&CXML_redir_for_subjs=121&CXML_redir_for_hrefs=&timeout=30000&debug=on&run=+Run+Query+"
+				rq = "default-graph-uri=http://dbpedia.org&query=PREFIX+res%3A+%3Chttp%3A%2F%2Fdbpedia.org%2Fresource%2F%3E%0D%0APREFIX+dbo%3A+%3Chttp%3A%2F%2Fdbpedia.org%2Fontology%2F%3E%0D%0APREFIX+dbp%3A+%3Chttp%3A%2F%2Fdbpedia.org%2Fproperty%2F%3E%0D%0A%0D%0ASELECT+%3Fproperty+WHERE+%7B%0D%0A+++++%3Fsubject+%3C" + strings.ReplaceAll(p.typ.val, "#", "%23") + "%3E%3Fproperty%0D%0A%7D" + randlim + "&format=application%2Fsparql-results%2Bjson&CXML_redir_for_subjs=121&CXML_redir_for_hrefs=&timeout=30000&debug=on&run=+Run+Query+"
+				//rq = "default-graph-uri=http://dbpedia.org&query=PREFIX+res%3A+%3Chttp%3A%2F%2Fdbpedia.org%2Fresource%2F%3E%0D%0APREFIX+dbo%3A+%3Chttp%3A%2F%2Fdbpedia.org%2Fontology%2F%3E%0D%0APREFIX+dbp%3A+%3Chttp%3A%2F%2Fdbpedia.org%2Fproperty%2F%3E%0D%0A%0D%0ASELECT+%3Fproperty+WHERE+%7B%0D%0A+++++%3Fsubject+%3C" + strings.ReplaceAll(p.typ.val, "#", "%23") + "%3E%3Fproperty%0D%0A%7D%0D%0AORDER+BY+RAND%28%29%0D%0Alimit+10&format=application%2Fsparql-results%2Bjson&CXML_redir_for_subjs=121&CXML_redir_for_hrefs=&timeout=30000&debug=on&run=+Run+Query+"
 				//fmt.Println(rq)
 				//rq = "default-graph-uri=http://dbpedia.org&query=PREFIX+res%3A+%3Chttp%3A%2F%2Fdbpedia.org%2Fresource%2F%3E%0D%0APREFIX+dbo%3A+%3Chttp%3A%2F%2Fdbpedia.org%2Fontology%2F%3E%0D%0APREFIX+dbp%3A+%3Chttp%3A%2F%2Fdbpedia.org%2Fproperty%2F%3E%0D%0A%0D%0ASELECT+%3Fproperty+WHERE+%7B%0D%0A+++++%3Fsubject+dbp%3A" + prop + "+%3Fproperty%0D%0A%7D%0D%0AORDER+BY+RAND%28%29%0D%0Alimit+10&format=application%2Fsparql-results%2Bjson&CXML_redir_for_subjs=121&CXML_redir_for_hrefs=&timeout=30000&debug=on&run=+Run+Query+"
 				data = query(rq)
