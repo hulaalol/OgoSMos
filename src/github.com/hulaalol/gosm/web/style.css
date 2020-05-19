@@ -77,6 +77,10 @@ body{
     background-color: #3e8e41;
   }
 
+  .answerbutton:hover {
+    background-color: green;
+  }
+
   
   @keyframes spin {
     0% { transform: rotate(0deg); }

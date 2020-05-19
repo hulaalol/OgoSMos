@@ -2,6 +2,7 @@ package main
 
 import (
 	hp "container/heap"
+	"fmt"
 	"log"
 )
 
@@ -119,21 +120,77 @@ type SNode struct {
 	streetname string
 }
 
-func getEdges(node Node) []SNode {
+func getEdgesRec(node SNode, intermediate []SNode, streetName string) Edge {
+
+	fmt.Println("add edge recursively...")
 	var eOutIdxStart = finalOffsetsOut[node.idx]
 	var eOutIdxEnd = finalOffsetsOut[node.idx+1]
 	var eOut = finalEdgesOut[eOutIdxStart:eOutIdxEnd]
-	var result = make([]SNode, len(eOut))
 
-	for idx, e := range eOut {
-		result[idx] = SNode{e.n2idx, finalNodes[e.n2idx].lat, finalNodes[e.n2idx].lon, e.streetname}
+	for _, e := range eOut {
+		if e.streetname != streetName {
+			return Edge{0, 0, 0, 0, 0, 0, "finish"}
+		}
+
+	}
+
+	for _, e := range eOut {
+
+		var isAlreadyInResult = false
+		for _, ir := range intermediate {
+			if ir.idx == e.n2idx {
+				isAlreadyInResult = true
+			}
+		}
+
+		if !isAlreadyInResult && e.streetname == streetName {
+			return e
+		}
+	}
+
+	return Edge{0, 0, 0, 0, 0, 0, "finish"}
+
+}
+
+func getEdges(node Node, path []SNode) []SNode {
+	var eOutIdxStart = finalOffsetsOut[node.idx]
+	var eOutIdxEnd = finalOffsetsOut[node.idx+1]
+	var eOut = finalEdgesOut[eOutIdxStart:eOutIdxEnd]
+	var result = make([]SNode, 0)
+
+	for _, e := range eOut {
+
+		var lat = finalNodes[e.n2idx].lat
+		var lon = finalNodes[e.n2idx].lon
+		var skip = false
+		for _, n := range path {
+
+			if n.lat == lat && n.lon == lon {
+				skip = true
+			}
+
+		}
+
+		if !skip {
+			var newNode = SNode{e.n2idx, finalNodes[e.n2idx].lat, finalNodes[e.n2idx].lon, e.streetname}
+
+			result = append(result, newNode)
+
+			var follow = getEdgesRec(newNode, result, e.streetname)
+
+			for follow.streetname != "finish" {
+				var followNode = SNode{follow.n2idx, finalNodes[follow.n2idx].lat, finalNodes[follow.n2idx].lon, follow.streetname}
+				result = append(result, followNode)
+				follow = getEdgesRec(followNode, result, e.streetname)
+			}
+		}
 	}
 	return result
 }
 
 func getQuizPath(origin Node, destiny Node, mode string, metric string) (uint32, []SNode, []SNode) {
 	var distance, path = getPath(origin, destiny, mode, metric)
-	var edgeOptions = getEdges(origin)
+	var edgeOptions = getEdges(origin, path)
 	return distance, path, edgeOptions
 }
 

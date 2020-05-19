@@ -418,7 +418,7 @@ func getClassName(queryResult []information) []string {
 	}
 
 	//filter classnames
-	var filter = [...]string{"http://dbpedia.org/ontology/Location", "http://dbpedia.org/ontology/Place", "http://dbpedia.org/ontology/Agent", "http://dbpedia.org/ontology/Person", "http://dbpedia.org/ontology/Place", "http://www.w3.org/2002/07/owl#Thing"}
+	var filter = [...]string{"http://dbpedia.org/ontology/Location", "http://dbpedia.org/ontology/Agent", "http://dbpedia.org/ontology/Person", "http://dbpedia.org/ontology/Place", "http://www.w3.org/2002/07/owl#Thing"}
 
 	var fClass []information
 	for _, c := range class {

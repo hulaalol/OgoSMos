@@ -177,48 +177,54 @@ func quizNav(w http.ResponseWriter, r *http.Request) {
 			panic(err)
 		}
 
-		var distance, path, edgeOptions = getQuizPath(start, finish, req.Mode, req.Metric)
+		var distance, path, edgeOptions = getQuizPath(start, finish, "car", "distance")
 
-		// reverse path
-		path = reversePath(path)
+		if len(path) != 0 {
 
-		var currentStreet = path[0].streetname
-		var question = genQuestion(currentStreet)
-		var coords = make([]LeafletEdge, 0)
-		var eOpts = make([]LeafletEdge, 0)
+			// reverse path
+			path = reversePath(path)
 
-		// build correct path until next junction
-		for idx, _ := range path {
+			var currentStreet = path[0].streetname
+			var question = genQuestion(currentStreet)
+			var coords = make([]LeafletEdge, 0)
+			var eOpts = make([]LeafletEdge, 0)
 
-			// abort if finished navigating current street
-			if path[idx].streetname != currentStreet {
-				break
-			}
+			// build correct path until next junction
+			for idx, _ := range path {
 
-			if idx != len(path)-1 {
-				coords = append(coords, LeafletEdge{[]float32{finalNodes[path[idx].idx].lat, finalNodes[path[idx].idx].lon, finalNodes[path[idx+1].idx].lat, finalNodes[path[idx+1].idx].lon}, path[idx].streetname})
-			}
-		}
+				// abort if finished navigating current street
+				if path[idx].streetname != currentStreet {
+					break
+				}
 
-		// wrong turns if player fails to answer question
-		for idx, _ := range edgeOptions {
-			var k = true
-			// dont use edges present in the path!
-			for idx2, _ := range path {
-				if edgeOptions[idx].idx == path[idx2].idx {
-					k = false
+				if idx != len(path)-1 {
+					coords = append(coords, LeafletEdge{[]float32{finalNodes[path[idx].idx].lat, finalNodes[path[idx].idx].lon, finalNodes[path[idx+1].idx].lat, finalNodes[path[idx+1].idx].lon}, path[idx].streetname})
 				}
 			}
-			if k {
-				eOpts = append(eOpts, LeafletEdge{[]float32{finalNodes[path[0].idx].lat, finalNodes[path[0].idx].lon, finalNodes[edgeOptions[idx].idx].lat, finalNodes[edgeOptions[idx].idx].lon}, edgeOptions[idx].streetname})
 
+			// wrong turns if player fails to answer question
+			for idx, _ := range edgeOptions {
+				var k = true
+				// dont use edges present in the path!
+				for idx2, _ := range path {
+					if edgeOptions[idx].idx == path[idx2].idx {
+						k = false
+					}
+				}
+				if k {
+					eOpts = append(eOpts, LeafletEdge{[]float32{finalNodes[path[0].idx].lat, finalNodes[path[0].idx].lon, finalNodes[edgeOptions[idx].idx].lat, finalNodes[edgeOptions[idx].idx].lon}, edgeOptions[idx].streetname})
+
+				}
 			}
+
+			var answer = convQuizCrumb2JSON(coords, distance, eOpts, question)
+
+			w.Header().Set("Content-Type", "application/json")
+			w.Write(answer)
+
+		} else {
+			fmt.Println("webserver request failed to generate path...")
 		}
-
-		var answer = convQuizCrumb2JSON(coords, distance, eOpts, question)
-
-		w.Header().Set("Content-Type", "application/json")
-		w.Write(answer)
 
 	}
 
@@ -279,6 +285,9 @@ type Marker struct {
 }
 
 func setMarker(w http.ResponseWriter, r *http.Request) {
+
+	var nodeDelta uint16 = 10
+
 	log.Println("received marker request")
 
 	switch r.Method {
@@ -294,14 +303,19 @@ func setMarker(w http.ResponseWriter, r *http.Request) {
 
 		var jsonMarker LeafletMarker
 		if req.Type == "start" {
-			start = finalNodes[findClosestNode(req.Lat, req.Lon, 100, req.Mode)]
+			start = finalNodes[findClosestNode(req.Lat, req.Lon, nodeDelta, req.Mode)]
 
 			jsonMarker = LeafletMarker{"start", start.lat, start.lon}
 
 		} else if req.Type == "finish" {
-			finish = finalNodes[findClosestNode(req.Lat, req.Lon, 100, req.Mode)]
+			finish = finalNodes[findClosestNode(req.Lat, req.Lon, nodeDelta, req.Mode)]
 
 			jsonMarker = LeafletMarker{"finish", finish.lat, finish.lon}
+
+		} else if req.Type == "loc" {
+			start = finalNodes[findClosestNode(req.Lat, req.Lon, 1, req.Mode)]
+
+			jsonMarker = LeafletMarker{"start", start.lat, start.lon}
 
 		} else {
 			log.Println("invalid marker type!")

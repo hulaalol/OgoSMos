@@ -185,18 +185,21 @@ func (d *dataHandlerWays) ReadWay(w gosmparse.Way) {
 				name = v2
 			}
 
-			d.edgesOut[d.wayCount] = Edge{w.NodeIDs[i], w.NodeIDs[i+1], 0, 0, uint8(m), uint8(access), name}
-			d.wayCount++
+			// skip edges with no road name
+			if name != "UNDEFINED" && (access == 1 || access == 0) {
 
-			//edges in
-			d.edgesOut[d.wayCount] = Edge{w.NodeIDs[i+1], w.NodeIDs[i], 0, 0, uint8(m), uint8(access), name}
-			d.wayCount++
+				d.edgesOut[d.wayCount] = Edge{w.NodeIDs[i], w.NodeIDs[i+1], 0, 0, uint8(m), uint8(access), name}
+				d.wayCount++
 
-			d.nodes[d.nodeCount] = w.NodeIDs[i]
-			d.nodeCount++
-			d.nodes[d.nodeCount] = w.NodeIDs[i+1]
-			d.nodeCount++
+				//edges in
+				d.edgesOut[d.wayCount] = Edge{w.NodeIDs[i+1], w.NodeIDs[i], 0, 0, uint8(m), uint8(access), name}
+				d.wayCount++
 
+				d.nodes[d.nodeCount] = w.NodeIDs[i]
+				d.nodeCount++
+				d.nodes[d.nodeCount] = w.NodeIDs[i+1]
+				d.nodeCount++
+			}
 		}
 		d.mutex.Unlock()
 

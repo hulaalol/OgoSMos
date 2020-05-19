@@ -14,6 +14,11 @@ var mymap;
 var germanyLayer;
 var graphHidden;
 
+
+// quiznav globals
+var globalQuestion;
+
+
 // #4CAF50
 
 function clearMap(m) {
@@ -254,60 +259,56 @@ $(document).ready(function(){
 
     L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token={accessToken}', {
         attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors, <a href="https://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, Imagery © <a href="https://www.mapbox.com/">Mapbox</a>',
-        maxZoom: 18,
+        maxZoom: 20,
         id: 'mapbox.streets',
         accessToken: 'pk.eyJ1IjoiaHVsYWFsb2wiLCJhIjoiY2szYjBqc2Q3MGhuazNkbXhrbnZsaHIyYiJ9._R-lsR0wjcmJGXf5TRmSSw'
     }).addTo(mymap);
 
 
     initMap()
-
-    
-
-
-
-
-
-
-
 });
 
 
 function sendMarker(marker,type){
-    activateLoader();
-    var xhr = new XMLHttpRequest();
-    var url = "/marker";
-    xhr.open("POST", url, true);
-    xhr.setRequestHeader("Content-Type", "application/json");
-    
-    xhr.onreadystatechange = function () {
-    if (xhr.readyState === 4 && xhr.status === 200) {
 
-        var json = JSON.parse(xhr.responseText);
-        var newLatLng = new L.LatLng(json.Lat, json.Lon);
+    return new Promise((resolve,reject) => {
+        activateLoader();
+        var xhr = new XMLHttpRequest();
+        var url = "/marker";
+        xhr.open("POST", url, true);
+        xhr.setRequestHeader("Content-Type", "application/json");
+        
+        xhr.onreadystatechange = function () {
+        if (xhr.readyState === 4 && xhr.status === 200) {
     
-        if(json.Name == "start"){
-            marker1.setLatLng(newLatLng); 
+            var json = JSON.parse(xhr.responseText);
+            var newLatLng = new L.LatLng(json.Lat, json.Lon);
+        
+            if(json.Name == "start"){
+                marker1.setLatLng(newLatLng); 
+            }
+            if(json.Name == "finish"){
+                marker2.setLatLng(newLatLng); 
+            }
+    
+            console.log("handled marker request :)");
+            deactivateLoader();
+
+            resolve(true);
+    
         }
-        if(json.Name == "finish"){
-            marker2.setLatLng(newLatLng); 
         }
-
-        console.log("handled marker request :)");
-        deactivateLoader();
-
-    }
-    }
-    var lat = marker.getLatLng().lat
-    var lon = marker.getLatLng().lng 
-    var data = JSON.stringify({"do": "setMarker",
-                                "type" : type,
-                                "mode" : mode,
-                                "lat": lat,
-                                "lon": lon });
-    
-    console.log("sending marker to server: "+type+" - "+"("+lat+"/"+lon+")")
-    xhr.send(data);
+        var lat = marker.getLatLng().lat
+        var lon = marker.getLatLng().lng 
+        var data = JSON.stringify({"do": "setMarker",
+                                    "type" : type,
+                                    "mode" : mode,
+                                    "lat": lat,
+                                    "lon": lon });
+        
+        console.log("sending marker to server: "+type+" - "+"("+lat+"/"+lon+")")
+        xhr.send(data);
+    });
 }
 
 
@@ -324,6 +325,59 @@ function shuffle(a) {
 }
 
 
+function setMarker(latlng){
+    return new Promise((resolve,reject) => {
+
+        if(marker1){
+            mymap.removeLayer(marker1)
+        }
+    
+        marker1 = new L.marker(latlng)
+         // send request to server
+        marker1.bindTooltip("You", 
+        {
+            permanent: true, 
+            direction: 'right'
+        })
+        mymap.addLayer(marker1)
+        sendMarker(marker1,"loc").then(function(){
+            resolve(true);
+        }, function(){
+            reject(true);
+        })
+    })
+
+}
+
+function answerQuestion(e){
+
+    e = e || window.event;
+    var target= e.target || e.srcElement;
+    
+    if(target.id == globalQuestion.AnswerID){
+        //correct answer
+        globalQuestion.cppl.addTo(mymap);
+
+        var endOfPath = globalQuestion.cppl._latlngs.length;
+        var latlng = globalQuestion.cppl._latlngs[endOfPath-1][1];
+    }else{
+        //incorrect answer
+        var wppl= globalQuestion.wppls[Math.floor(Math.random() * globalQuestion.wppls.length)];
+        wppl.addTo(mymap);
+
+        var endOfPath = wppl._latlngs.length;
+        var latlng = wppl._latlngs[endOfPath-1][1];
+    }
+    setMarker(latlng).then(function(){
+     //fullfillment
+     quizNav();   
+    }, function(reason){
+        //rejection
+    });
+
+}
+
+
 function setQuestion(question){
 
     document.getElementById("question").innerHTML = question.Item;
@@ -334,10 +388,12 @@ function setQuestion(question){
 
     for(var i=0;i<aIdx.length;i++){
         document.getElementById("a"+aIdx[i]).innerHTML = answers[i];
+        document.getElementById("a"+aIdx[i]).fontWeight="normal";
     }
     document.getElementById("a"+aIdx[0]).style.fontWeight="bold";
 
-    
+    globalQuestion = question;
+    globalQuestion.AnswerID = "a"+aIdx[0];
 }
 
 function pickQuestion(questions){
@@ -405,8 +461,9 @@ function quizNav(){
 
                 var cppl = L.polyline(correctPath, {color: "green", interactive: false});
                 cppl.id = "path";
-                cppl.addTo(mymap);
+                //cppl.addTo(mymap);
 
+                var wppls = [];
                 for(i =0; i< json.DistractorEdges.length; i++){
                     var wrongPath = [];
                     var edge =json.DistractorEdges[i].C;
@@ -414,13 +471,16 @@ function quizNav(){
 
                     var wppl = L.polyline(wrongPath, {color:"red",interactive: false});
                     wppl.id = "dE"+i;
-                    wppl.addTo(mymap);
+                    //wppl.addTo(mymap);
+                    wppls.push(wppl);
                 }
 
 
 
                 if(checkQuestions(json.Question)){
                     var q = pickQuestion(json.Question);
+                    q.cppl = cppl;
+                    q.wppls = wppls;
                     setQuestion(q);
                 }else{
                     console.log("no valid question could be generated :(");
