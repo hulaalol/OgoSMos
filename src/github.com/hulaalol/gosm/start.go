@@ -70,7 +70,8 @@ func main() {
 	//var q = genQuestion("Duke")
 	//fmt.Println(q)
 
-	var q = genQuestion("Newgate")
+	var q = genQuestion("Little_Britain")
+	//var q = genQuestion("Newgate")
 	fmt.Println(q)
 
 	// END TEST AREA

@@ -12,8 +12,8 @@ import (
 	"github.com/valyala/fastjson"
 )
 
-var stopwords = [...]string{"street", "road", "highway", "way", "avenue", "strait", "drive", "lane", "grove", "gardens", "place", "circus", "crescent", "bypass", "close", "square", "hill", "mews", "vale", "rise", "row", "mead", "wharf", "walk", "the "}
-var stopwordsItem = [...]string{"great", "the", "bridge", "high"}
+var stopwords = [...]string{"'s", "street", "road", "highway", "way", "avenue", "strait", "drive", "lane", "grove", "gardens", "place", "circus", "crescent", "bypass", "close", "square", "hill", "mews", "vale", "rise", "row", "mead", "wharf", "walk", "the "}
+var stopwordsItem = [...]string{"great", "the", "bridge", "high", "st"}
 
 //var stopwordsGER = [...]string{"weg", "straße", "strasse", "allee", "gasse", "Straße", "Weg", "Strasse", "Allee"}
 var syllables = [...]string{"er"}
@@ -226,7 +226,8 @@ func genItem(item string, getPropDists bool) ItemData {
 
 		var props = getProps(res)
 
-		if className[0] == "null" || len(props) == 0 {
+		if className[0] == "null" && len(props) == 0 {
+			fmt.Println("no class and no props, searching for disambiguations...")
 			// this is not an entity --> search for disambiguations
 
 			var disambiguations = getDisambiguations(item)
@@ -237,16 +238,18 @@ func genItem(item string, getPropDists bool) ItemData {
 				var newItem = cleanURL(disambiguations[r.Intn(len(disambiguations))].val)
 
 				return genItem(newItem, getPropDists)
-			}
+			} else {
+				fmt.Println("no disambiguations, searching for hypernyms...")
+				var hypernyms = getHypernyms(item)
 
-			var hypernyms = getHypernyms(item)
+				if len(hypernyms) > 0 {
+					var s = rand.NewSource(time.Now().Unix())
+					var r = rand.New(s) // initialize local pseudorandom generator
+					var newItem = cleanURL(hypernyms[r.Intn(len(hypernyms))].val)
 
-			if len(hypernyms) > 0 {
-				var s = rand.NewSource(time.Now().Unix())
-				var r = rand.New(s) // initialize local pseudorandom generator
-				var newItem = cleanURL(hypernyms[r.Intn(len(hypernyms))].val)
+					return genItem(newItem, getPropDists)
+				}
 
-				return genItem(newItem, getPropDists)
 			}
 
 			fmt.Println("cant find class or entity, trying to generate props")
@@ -274,12 +277,14 @@ func genItem(item string, getPropDists bool) ItemData {
 
 			var catDists = getCategoryDistractors(cats, catsExp)
 		*/
+		var p = []propDist{}
 
-		var p []propDist
-		if getPropDists {
-			p = getPropDistractor(props)
-		} else {
-			p = []propDist{}
+		if len(props) != 0 {
+			if getPropDists {
+				p = getPropDistractor(props)
+			} else {
+				p = []propDist{}
+			}
 		}
 
 		var siblingClasses = []info{}
@@ -290,12 +295,12 @@ func genItem(item string, getPropDists bool) ItemData {
 			siblingClasses = getSiblingClasses(superClass[0], cN)
 		}
 
-		if cN != "null" {
+		if cN != "null" && !getPropDists {
 			classSiblings = getSiblings(cN)
 		}
 
 		if superClass[0] != "null" {
-			superClassSiblings = getSiblings(superClass[0])
+			//superClassSiblings = getSiblings(superClass[0])
 		}
 
 		return ItemData{item, cN, superClass[0], siblingClasses, classSiblings, superClassSiblings, props, p, getDepiction(item)}
@@ -346,6 +351,7 @@ func getPropDistractor(props []information) []propDist {
 	rand.Seed(time.Now().UnixNano())
 
 	p := rand.Perm(len(props))
+
 	dest := make([]information, len(props))
 
 	for i, v := range p {
@@ -353,9 +359,13 @@ func getPropDistractor(props []information) []propDist {
 	}
 
 	var res = []propDist{}
+	var superRes = []propDist{}
 	for _, p := range dest {
+
 		if strings.Contains(p.val.val, "/dbpedia.org/resource/") {
 			//fetch resource and get distractors
+
+			fmt.Println("get Prop distractor for resource property " + p.typ.val)
 
 			var resource = cleanURL(p.val.val)
 			var resourceItem = genItem(resource, false)
@@ -363,13 +373,22 @@ func getPropDistractor(props []information) []propDist {
 			// check if there are at least 3 distractors
 			if len(resourceItem.siblings) > 2 {
 				res = append(res, propDist{p.typ.val, resource, resourceItem.siblings})
-				break
+				return res
 			}
 
+			if len(resourceItem.siblingClasses) > 2 {
+				superRes = append(superRes, propDist{resourceItem.superClass, resourceItem.class, resourceItem.siblingClasses})
+			}
 		}
-
 	}
-	return res
+
+	if len(superRes) > 0 {
+		rand.Seed(time.Now().UnixNano())
+		var idx = rand.Intn(len(superRes))
+		return []propDist{superRes[idx]}
+	} else {
+		return res
+	}
 }
 
 func getPropDistractors(props []information) []propDist {
@@ -402,15 +421,17 @@ func queryDBP(item string, typ string) []information {
 
 	var res = json2informationArray(data)
 
-	if res == nil {
-		var redirect = getRedirect(item)
-		if redirect != "null" {
-			fmt.Println("Found redirect. Following...")
-			res = queryDBP(redirect, typ)
-		} else {
-			fmt.Println("no redirect - does res already contain info? - catch disambiguation")
+	/*
+		if res == nil {
+			var redirect = getRedirect(item)
+			if redirect != "null" {
+				fmt.Println("Found redirect. Following...")
+				res = queryDBP(redirect, typ)
+			} else {
+				fmt.Println("no redirect - does res already contain info? - catch disambiguation")
+			}
 		}
-	}
+	*/
 
 	return res
 }
@@ -461,7 +482,7 @@ func getRedirect(item string) string {
 
 		https://dbpedia.org/sparql?default-graph-uri=http%3A%2F%2Fdbpedia.org&query=PREFIX+res%3A+%3Chttp%3A%2F%2Fdbpedia.org%2Fresource%2F%3E%0D%0APREFIX+dbo%3A+%3Chttp%3A%2F%2Fdbpedia.org%2Fontology%2F%3E%0D%0A%0D%0ASELECT+%3Fproperty+WHERE+%7B+%0D%0A+++res%3AArch_Bridge+dbo%3AwikiPageRedirects+%3Fproperty%0D%0A%7D++%0D%0A&format=application%2Fsparql-results%2Bjson&CXML_redir_for_subjs=121&CXML_redir_for_hrefs=&timeout=30000&debug=on&run=+Run+Query+
 	*/
-	fmt.Println("getting redirect for: " + item)
+	//fmt.Println("getting redirect for: " + item)
 	item = cleanSpecialCharacters(item)
 	var rq = "default-graph-uri=http%3A%2F%2Fdbpedia.org&query=PREFIX+res%3A+%3Chttp%3A%2F%2Fdbpedia.org%2Fresource%2F%3E%0D%0APREFIX+dbo%3A+%3Chttp%3A%2F%2Fdbpedia.org%2Fontology%2F%3E%0D%0A%0D%0ASELECT+%3Fproperty+WHERE+%7B+%0D%0A+++res%3A" + item + "+dbo%3AwikiPageRedirects+%3Fproperty%0D%0A%7D++%0D%0A&format=application%2Fsparql-results%2Bjson&CXML_redir_for_subjs=121&CXML_redir_for_hrefs=&timeout=30000&debug=on&run=+Run+Query+"
 	var data = query(rq)
@@ -748,7 +769,6 @@ func questionCatDist(d ItemData) Question {
 }
 */
 
-/*
 func questionPropDist(d ItemData) Question {
 
 	if d.propertyDists != nil && len(d.propertyDists) > 0 {
@@ -757,7 +777,7 @@ func questionPropDist(d ItemData) Question {
 		var r = rand.New(s)
 		propD := d.propertyDists[r.Intn(len(d.propertyDists))]
 
-		var question = d.item + " is " + propD.property + " ..."
+		var question = d.item + "(" + propD.property + ")" + " is  ..."
 		var answer = propD.answer
 
 		rand.Seed(time.Now().UnixNano())
@@ -779,7 +799,6 @@ func questionPropDist(d ItemData) Question {
 	}
 
 }
-*/
 
 func questionSiblingClasses(d ItemData) Question {
 
@@ -941,15 +960,22 @@ func rollQuestion(d ItemData) Question {
 	rand.Seed(time.Now().UnixNano())
 	var roll = rand.Intn(101)
 
+	// TODO: check for valid options then roll.
+
 	// if there was no class found, try to generate a property question
 	if d.class == "null" {
 		return questionPropLiteral(d)
 	}
 
-	if roll < 50 {
+	if roll < 33 {
+		fmt.Println("generate SiblingClass Question")
 		return questionSiblingClasses(d)
-	} else {
+	} else if roll < 66 {
+		fmt.Println("generate PropLiteral Question")
 		return questionPropLiteral(d)
+	} else {
+		fmt.Println("generate PropDist Question")
+		return questionPropDist(d)
 	}
 
 }
