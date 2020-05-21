@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"time"
 )
@@ -70,9 +69,9 @@ func main() {
 	//var q = genQuestion("Duke")
 	//fmt.Println(q)
 
-	var q = genQuestion("Little_Britain")
+	//var q = genQuestion("Walnut")
 	//var q = genQuestion("Newgate")
-	fmt.Println(q)
+	//fmt.Println(q)
 
 	// END TEST AREA
 

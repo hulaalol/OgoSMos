@@ -368,6 +368,12 @@ function answerQuestion(e){
         var endOfPath = wppl._latlngs.length;
         var latlng = wppl._latlngs[endOfPath-1][1];
     }
+
+    //update image
+    document.getElementById("depiction").src = globalQuestion.img;
+    //update abstract
+    document.getElementById("abstract").innerHTML = globalQuestion.abstract;
+
     setMarker(latlng).then(function(){
      //fullfillment
      quizNav();   
@@ -481,6 +487,8 @@ function quizNav(){
                     var q = pickQuestion(json.Question);
                     q.cppl = cppl;
                     q.wppls = wppls;
+                    q.img = json.Img;
+                    q.abstract = json.Abstract;
                     setQuestion(q);
                 }else{
                     console.log("no valid question could be generated :(");

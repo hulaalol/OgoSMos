@@ -78,6 +78,8 @@ type QuizCrumb struct {
 	DistractorEdges  []LeafletEdge
 	DistanceToTarget uint32
 	Question         []QuestionJS
+	Img              string
+	Abstract         string
 }
 
 //function to filter out edges for a certain zoom level
@@ -111,14 +113,16 @@ func filterEdges(NWtlLat float32, NWtlLon float32, SEbrLat float32, SEbrLon floa
 
 }
 
-func convQuizCrumb2JSON(path []LeafletEdge, distance uint32, edgeOptions []LeafletEdge, questions []Question) []byte {
+func convQuizCrumb2JSON(path []LeafletEdge, distance uint32, edgeOptions []LeafletEdge, qw QuestionWrapper) []byte {
 
-	var qjs = make([]QuestionJS, len(questions))
-	for idx, q := range questions {
-		qjs[idx] = QuestionJS{q.item, q.answer, q.d1, q.d2, q.d3}
-	}
+	//var qjs = make([]QuestionJS, len(questions))
+	//for idx, q := range questions {
+	//	qjs[idx] = QuestionJS{q.item, q.answer, q.d1, q.d2, q.d3}
+	//}
 
-	profile := QuizCrumb{"quiz", path, edgeOptions, distance, qjs}
+	var qjs = []QuestionJS{QuestionJS{qw.question.item, qw.question.answer, qw.question.d1, qw.question.d2, qw.question.d3}}
+
+	profile := QuizCrumb{"quiz", path, edgeOptions, distance, qjs, qw.img, qw.abstract}
 	js, err := json.Marshal(profile)
 	if err != nil {
 		log.Printf("error while converting LeafletEdgeArray to JSON")
@@ -185,7 +189,7 @@ func quizNav(w http.ResponseWriter, r *http.Request) {
 			path = reversePath(path)
 
 			var currentStreet = path[0].streetname
-			var question = genQuestion(currentStreet)
+			var qw = genQuestion(currentStreet)
 			var coords = make([]LeafletEdge, 0)
 			var eOpts = make([]LeafletEdge, 0)
 
@@ -217,7 +221,7 @@ func quizNav(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 
-			var answer = convQuizCrumb2JSON(coords, distance, eOpts, question)
+			var answer = convQuizCrumb2JSON(coords, distance, eOpts, qw)
 
 			w.Header().Set("Content-Type", "application/json")
 			w.Write(answer)
