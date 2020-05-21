@@ -21,7 +21,7 @@ var syllables = [...]string{"er"}
 var randlim = "%0D%0A%09%09ORDER+BY+RAND%28%29%0D%0A%09%09limit+10"
 
 var propBlacklist = [...]string{"rdf-syntax-ns#type", "wikiPageRevisionID", "owl#sameAs", "rdf-schema#comment", "rdf-schema#label", "#wasDerivedFrom", "hypernym", "depiction", "wikiPageExternalLink", "wikiPageID", "subject", "isPrimaryTopicOf", "thumbnail", "abstract",
-	"caption", "property/footer", "imageCaption", "labelPosition", "locatorMap", "popRefCbs", "differentFrom", "popRefName", "rdf-schema#seeAlso", "property/longEw", "foaf/0.1/homepage", "property/name", "/foaf/0.1/name", "ontology/picture", "ontology/type", "dbpedia.org/property/id", "property/imageSize", "/property/title", "property/wordnet_type", "/property/note", "/property/servingSize", "/property/sourceUsda", "staticImage", "/georss/point", "/geo/wgs84", "/ontology/wikiPageDisambiguates"}
+	"caption", "seconded", "urlname", "annotFontSize", "/property/image", "property/align", "property/footer", "imageCaption", "labelPosition", "locatorMap", "popRefCbs", "differentFrom", "popRefName", "rdf-schema#seeAlso", "property/longEw", "foaf/0.1/homepage", "property/name", "/foaf/0.1/name", "ontology/picture", "ontology/type", "dbpedia.org/property/id", "property/imageSize", "/property/title", "property/wordnet_type", "/property/note", "/property/servingSize", "/property/sourceUsda", "staticImage", "/georss/point", "/geo/wgs84", "/ontology/wikiPageDisambiguates"}
 
 type information struct {
 	typ info
@@ -167,7 +167,7 @@ type ItemData struct {
 	abstract       string
 }
 
-func genItem(item string, getPropDists bool) ItemData {
+func genItem(item string, getPropDists bool, followDisambiguations bool) ItemData {
 
 	fmt.Println("generating item " + item)
 
@@ -177,10 +177,14 @@ func genItem(item string, getPropDists bool) ItemData {
 		res = queryDBP(item, "dbo")
 	}
 
-	// check for redirects
-	var redirect = getRedirectRes(res)
-	if redirect != "null" {
-		return genItem(redirect, getPropDists)
+	// check disambiguaty, check hypernym, check redirect
+	if getPropRes("http://www.w3.org/1999/02/22-rdf-syntax-ns#type", res).val.val == "null" {
+		// check for redirects
+		var redirect = getRedirectRes(res)
+		if redirect != "null" {
+			fmt.Println("following redirect " + redirect + " for item " + item)
+			return genItem(redirect, getPropDists, true)
+		}
 	}
 
 	// if no results, try to split words
@@ -207,7 +211,7 @@ func genItem(item string, getPropDists bool) ItemData {
 				}
 
 				if !isStopword {
-					return genItem(w, getPropDists)
+					return genItem(w, getPropDists, true)
 				}
 			}
 		}
@@ -229,21 +233,35 @@ func genItem(item string, getPropDists bool) ItemData {
 	var props = getProps(res)
 
 	// if no class and no properties, search for disambiguations and hypernyms
-	if className[0] == "null" && len(props) == 0 {
-		fmt.Println("no class and no props, searching for disambiguations of" + item + "...")
+	//if className[0] == "null" && len(props) == 0 {
+	if len(props) == 0 && followDisambiguations {
+		fmt.Println("no class and no props, searching for disambiguations of " + item + "...")
 
-		var disambiguation = getDisambiguationsRes(res)
+		/*
+			var disambiguation = getDisambiguationsRes(res)
 
-		if disambiguation != "null" {
-			return genItem(disambiguation, getPropDists)
-		} else {
-			fmt.Println("no disambiguations, searching for hypernyms of" + item + "...")
+			if disambiguation != "null" {
+				return genItem(disambiguation, getPropDists)
 
-			var hypernym = getHypernymsRes(res)
-			if hypernym != "null" {
-				return genItem(hypernym, getPropDists)
+		*/
+
+		var disambiguations = getDisambiguationsResAll(res)
+
+		for _, d := range disambiguations {
+			var dItem = genItem(d, getPropDists, false)
+			if dItem.item != "null" {
+				return dItem
 			}
 		}
+
+		//} else {
+		fmt.Println("no disambiguations, searching for hypernyms of " + item + "...")
+
+		var hypernym = getHypernymsRes(res)
+		if hypernym != "null" {
+			return genItem(hypernym, getPropDists, false)
+		}
+		//}
 
 		fmt.Println("no disambiguations and hypernyms, trying to generate props for " + item + "...")
 		var p = getProps(res)
@@ -305,6 +323,15 @@ func getProps(data []information) []information {
 			}
 		}
 
+		if !skip {
+			if strings.Contains(d.typ.val, "property") {
+				var propName = cleanURL(d.typ.val)
+				if len(propName) <= 2 {
+					skip = true
+				}
+			}
+		}
+
 		if skip {
 			continue
 		} else {
@@ -344,7 +371,7 @@ func getPropDistractor(props []information) []propDist {
 			fmt.Println("get Prop distractor for resource property " + p.typ.val)
 
 			var resource = cleanURL(p.val.val)
-			var resourceItem = genItem(resource, false)
+			var resourceItem = genItem(resource, false, false)
 
 			// check if there are at least 3 distractors
 			if len(resourceItem.siblings) > 2 {
@@ -375,7 +402,7 @@ func getPropDistractors(props []information) []propDist {
 			//fetch resource and get distractors
 
 			var resource = cleanURL(p.val.val)
-			var resourceItem = genItem(resource, false)
+			var resourceItem = genItem(resource, false, false)
 
 			res = append(res, propDist{p.typ.val, resource, resourceItem.siblings})
 		}
@@ -392,6 +419,21 @@ func queryDBP(item string, typ string) []information {
 	var data = query(rq)
 
 	return json2informationArray(data)
+}
+
+func getPropResAll(prop string, res []information) []information {
+	var results []information = make([]information, 0)
+
+	for _, r := range res {
+		if r.typ.val == prop {
+			results = append(results, r)
+		}
+	}
+	if len(results) == 0 {
+		return []information{information{info{"null", "null"}, info{"null", "null"}}}
+	} else {
+		return results
+	}
 }
 
 func getPropRes(prop string, res []information) information {
@@ -414,6 +456,18 @@ func getPropRes(prop string, res []information) information {
 
 	return d
 
+}
+
+func getDisambiguationsResAll(res []information) []string {
+
+	var dis = getPropResAll("http://dbpedia.org/ontology/wikiPageDisambiguates", res)
+
+	var result []string = make([]string, len(dis))
+
+	for _, d := range dis {
+		result = append(result, cleanURL(d.val.val))
+	}
+	return result
 }
 
 func getDisambiguationsRes(res []information) string {
@@ -585,6 +639,7 @@ func getAbstract(res []information) string {
 	}
 
 	if len(results) == 0 {
+		fmt.Println("no abstract found")
 		return "null"
 	}
 
@@ -612,7 +667,12 @@ func getAbstract(res []information) string {
 }
 
 func getDepiction(res []information) string {
-	return getPropRes("http://xmlns.com/foaf/0.1/depiction", res).val.val
+	var depiction = getPropRes("http://xmlns.com/foaf/0.1/depiction", res)
+	if depiction.val.val == "null" {
+		fmt.Println("no abstract found")
+
+	}
+	return depiction.val.val
 }
 
 func json2infoArray(data []*fastjson.Value) []info {
@@ -818,7 +878,7 @@ func genQuestion(item string) QuestionWrapper {
 	item = strings.ReplaceAll(item, " ", "_")
 
 	fmt.Println("trying to generate a question for: " + item)
-	var d = genItem(item, true)
+	var d = genItem(item, true, true)
 
 	var qs []Question = make([]Question, 1)
 	qs[0] = rollQuestion(d)
@@ -832,7 +892,7 @@ func genQuestion(item string) QuestionWrapper {
 
 	for isEmptyQuestion(qs[0]) {
 		item = item[:len(item)-1]
-		qs = []Question{rollQuestion(genItem(item, true))}
+		qs = []Question{rollQuestion(genItem(item, true, true))}
 		//return []Question{getEmptyQuestion()}
 	}
 
