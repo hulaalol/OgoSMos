@@ -74,7 +74,6 @@ func cleanStreetname(s string) string {
 		s = strings.ReplaceAll(s, sw, "")
 		s = strings.ReplaceAll(s, strings.Title(sw), "")
 	}
-
 	/*
 		for _, sy := range syllables {
 
@@ -153,8 +152,6 @@ type Question struct {
 	d1     string
 	d2     string
 	d3     string
-	//img      string
-	//abstract string
 }
 
 type ItemData struct {
@@ -164,37 +161,29 @@ type ItemData struct {
 	siblingClasses []info
 	siblings       []info
 	supersiblings  []info
-	//categories     []info
-	//categoriesExp  [][]info
-	//catDists       []catDist
-	properties    []information
-	propertyDists []propDist
-	depiction     string
-	abstract      string
+	properties     []information
+	propertyDists  []propDist
+	depiction      string
+	abstract       string
 }
 
 func genItem(item string, getPropDists bool) ItemData {
 
 	fmt.Println("generating item " + item)
-	// clean
-	// check redirects
-	// check ambiguates
 
-	//var redirect = getRedirect(item)
-
-	//if redirect == "null" {
-
+	// query
 	var res = queryDBP(item, "dbr")
 	if len(res) == 0 {
 		res = queryDBP(item, "dbo")
 	}
 
+	// check for redirects
 	var redirect = getRedirectRes(res)
 	if redirect != "null" {
 		return genItem(redirect, getPropDists)
 	}
 
-	// try split words
+	// if no results, try to split words
 	if res == nil {
 		if strings.Contains(item, "_") {
 			words := strings.Split(item, "_")
@@ -226,63 +215,42 @@ func genItem(item string, getPropDists bool) ItemData {
 		//return genItem(item[:len(item)-1], getPropDists)
 	}
 
-	// TODO: catch weird dbpedia classes
+	// get Class
 	var className []string
+
+	// catch weird dbpedia classes
 	if item == "England" {
 		className = []string{"Country", "dbo"}
 	} else {
 		className = getClassName(res)
 	}
 
+	// get properties
 	var props = getProps(res)
 
+	// if no class and no properties, search for disambiguations and hypernyms
 	if className[0] == "null" && len(props) == 0 {
-		fmt.Println("no class and no props, searching for disambiguations...")
-		// this is not an entity --> search for disambiguations
+		fmt.Println("no class and no props, searching for disambiguations of" + item + "...")
 
-		//var disambiguations = getDisambiguations(item)
 		var disambiguation = getDisambiguationsRes(res)
 
 		if disambiguation != "null" {
 			return genItem(disambiguation, getPropDists)
-
-			/*
-				if len(disambiguations) > 0 {
-					var s = rand.NewSource(time.Now().Unix())
-					var r = rand.New(s) // initialize local pseudorandom generator
-					var newItem = cleanURL(disambiguations[r.Intn(len(disambiguations))].val)
-
-					return genItem(newItem, getPropDists)
-			*/
-
 		} else {
-			//fmt.Println("no disambiguations, searching for hypernyms...")
-			//var hypernyms = getHypernyms(item)
-			var hypernym = getHypernymsRes(res)
+			fmt.Println("no disambiguations, searching for hypernyms of" + item + "...")
 
+			var hypernym = getHypernymsRes(res)
 			if hypernym != "null" {
 				return genItem(hypernym, getPropDists)
 			}
-
-			/*
-				if len(hypernyms) > 0 {
-					var s = rand.NewSource(time.Now().Unix())
-					var r = rand.New(s) // initialize local pseudorandom generator
-					var newItem = cleanURL(hypernyms[r.Intn(len(hypernyms))].val)
-
-					return genItem(newItem, getPropDists)
-				}
-			*/
-
 		}
 
-		fmt.Println("cant find class or entity, trying to generate props")
+		fmt.Println("no disambiguations and hypernyms, trying to generate props for " + item + "...")
 		var p = getProps(res)
 		return ItemData{item, "null", "null", []info{}, []info{}, []info{}, p, getPropDistractor(p), getDepiction(res), getAbstract(res)}
 	}
-	//fmt.Println("Found class " + className[0] + " for " + item)
-	// find superclasses and siblings
 
+	// get superclass
 	var cN string = "null"
 	var classQuery []information = []information{}
 	var superClass []string = []string{"null"}
@@ -295,19 +263,7 @@ func genItem(item string, getPropDists bool) ItemData {
 		superClass = getClassName(classQuery)
 	}
 
-	//fmt.Println("Found superclass " + superClass[0] + " for " + item)
-
-	/*
-		var cats = getCategories(cN)
-
-		var catsExp [][]info
-		for _, c := range cats {
-			var catX = expandCategory(cleanURL(c.val))
-			catsExp = append(catsExp, catX)
-		}
-
-		var catDists = getCategoryDistractors(cats, catsExp)
-	*/
+	// get a property distractor
 	var p = []propDist{}
 
 	if len(props) != 0 {
@@ -330,22 +286,11 @@ func genItem(item string, getPropDists bool) ItemData {
 		classSiblings = getSiblings(cN)
 	}
 
-	if superClass[0] != "null" {
-		//superClassSiblings = getSiblings(superClass[0])
-	}
-
 	return ItemData{item, cN, superClass[0], siblingClasses, classSiblings, superClassSiblings, props, p, getDepiction(res), getAbstract(res)}
-	//return ItemData{item, cN, superClass[0], getSiblingClasses(superClass[0], cN), getSiblings(cN), getSiblings(superClass[0]), cats, catsExp, catDists, props, p, getDepiction(item)}
-
-	//} else {
-	//return genItem(cleanURL(redirect), getPropDists)
-	//}
-
 }
 
 func genEmptyItem() ItemData {
 	return ItemData{"null", "null", "null", []info{}, []info{}, []info{}, []information{}, []propDist{}, "null", "null"}
-	//return ItemData{"null", "null", "null", []info{}, []info{}, []info{}, []info{}, [][]info{}, []catDist{}, []information{}, []propDist{}, "null"}
 }
 
 func getProps(data []information) []information {
@@ -440,31 +385,13 @@ func getPropDistractors(props []information) []propDist {
 }
 
 func queryDBP(item string, typ string) []information {
-
 	var i = cleanSpecialCharacters(item)
 
 	// create json from json-string answer
 	var rq = "default-graph-uri=http://dbpedia.org&query=select+distinct+?property+?value%7B%0D%0A++" + typ + "%3A" + i + "+%3Fproperty+%3Fvalue%0D%0A%7D&format=application%2Fsparql-results%2Bjson&CXML_redir_for_subjs=121&CXML_redir_for_hrefs=&timeout=30000&debug=on&run=+Run+Query+"
 	var data = query(rq)
-	//fmt.Println("Found " + strconv.Itoa(len(res)) + " informations about " + item)
 
-	//?someObject dbp:population ?hasValue.
-
-	var res = json2informationArray(data)
-
-	/*
-		if res == nil {
-			var redirect = getRedirect(item)
-			if redirect != "null" {
-				fmt.Println("Found redirect. Following...")
-				res = queryDBP(redirect, typ)
-			} else {
-				fmt.Println("no redirect - does res already contain info? - catch disambiguation")
-			}
-		}
-	*/
-
-	return res
+	return json2informationArray(data)
 }
 
 func getPropRes(prop string, res []information) information {
@@ -490,88 +417,11 @@ func getPropRes(prop string, res []information) information {
 }
 
 func getDisambiguationsRes(res []information) string {
-
 	return cleanURL(getPropRes("http://dbpedia.org/ontology/wikiPageDisambiguates", res).val.val)
-	/*
-		var disambiguations []information = make([]information, 0)
-
-		for _, r := range res {
-			if r.typ.val == "http://dbpedia.org/ontology/wikiPageDisambiguates" {
-				disambiguations = append(disambiguations, r)
-			}
-		}
-
-		if len(disambiguations) == 0 {
-			return "null"
-		}
-
-		var s = rand.NewSource(time.Now().Unix())
-		var r = rand.New(s) // initialize local pseudorandom generator
-		d := disambiguations[r.Intn(len(disambiguations))]
-
-		return cleanURL(d.val.val)
-	*/
 }
 
 func getHypernymsRes(res []information) string {
-
 	return cleanURL(getPropRes("http://purl.org/linguistics/gold/hypernym", res).val.val)
-
-	/*
-		var hypernyms []information = make([]information, 0)
-
-		for _, h := range res {
-			if h.typ.val == "http://purl.org/linguistics/gold/hypernym" {
-				hypernyms = append(hypernyms, h)
-			}
-		}
-
-		if len(hypernyms) == 0 {
-			return "null"
-		}
-
-		var s = rand.NewSource(time.Now().Unix())
-		var r = rand.New(s) // initialize local pseudorandom generator
-		h := hypernyms[r.Intn(len(hypernyms))]
-
-		return cleanURL(h.val.val)
-	*/
-}
-
-func getDisambiguations(item string) []info {
-	/*	PREFIX res: <http://dbpedia.org/resource/>
-		PREFIX dbo: <http://dbpedia.org/ontology/>
-
-		SELECT ?property WHERE {
-				  res:Morpeth dbo:wikiPageDisambiguates ?property
-		}
-
-		https://dbpedia.org/sparql?default-graph-uri=http%3A%2F%2Fdbpedia.org&query=PREFIX+res%3A+%3Chttp%3A%2F%2Fdbpedia.org%2Fresource%2F%3E%0D%0APREFIX+dbo%3A+%3Chttp%3A%2F%2Fdbpedia.org%2Fontology%2F%3E%0D%0A%0D%0ASELECT+%3Fproperty+WHERE+%7B%0D%0A%09++++++res%3AMorpeth+dbo%3AwikiPageDisambiguates+%3Fproperty%0D%0A%7D&format=application%2Fsparql-results%2Bjson&CXML_redir_for_subjs=121&CXML_redir_for_hrefs=&timeout=30000&debug=on&run=+Run+Query+
-	*/
-	fmt.Println("getting disambiguations for: " + item)
-	item = cleanSpecialCharacters(item)
-
-	var rq = "default-graph-uri=http%3A%2F%2Fdbpedia.org&query=PREFIX+res%3A+%3Chttp%3A%2F%2Fdbpedia.org%2Fresource%2F%3E%0D%0APREFIX+dbo%3A+%3Chttp%3A%2F%2Fdbpedia.org%2Fontology%2F%3E%0D%0A%0D%0ASELECT+%3Fproperty+WHERE+%7B%0D%0A%09++++++res%3A" + item + "+dbo%3AwikiPageDisambiguates+%3Fproperty%0D%0A%7D&format=application%2Fsparql-results%2Bjson&CXML_redir_for_subjs=121&CXML_redir_for_hrefs=&timeout=30000&debug=on&run=+Run+Query+"
-	var data = query(rq)
-	var res = json2infoArray(data)
-	return res
-}
-
-func getHypernyms(resource string) []info {
-	/*
-		SELECT ?subject WHERE {
-			?subject <http://purl.org/linguistics/gold/hypernym> <http://dbpedia.org/resource/Duke>
-		}
-		ORDER BY RAND()
-		limit 10
-	*/
-	fmt.Println("getting hypernyms for: " + resource)
-
-	var rq = "default-graph-uri=http://dbpedia.org&query=%09%09SELECT+%3Fproperty+WHERE+%7B%0D%0A%09%09%09%3Fproperty+%3Chttp%3A%2F%2Fpurl.org%2Flinguistics%2Fgold%2Fhypernym%3E+%3Chttp%3A%2F%2Fdbpedia.org%2Fresource%2F" + resource + "%3E%0D%0A%09%09%7D&format=application%2Fsparql-results%2Bjson&CXML_redir_for_subjs=121&CXML_redir_for_hrefs=&timeout=30000&debug=on&run=+Run+Query+"
-	//var rq = "default-graph-uri=http://dbpedia.org&query=%09%09SELECT+%3Fproperty+WHERE+%7B%0D%0A%09%09%09%3Fproperty+%3Chttp%3A%2F%2Fpurl.org%2Flinguistics%2Fgold%2Fhypernym%3E+%3Chttp%3A%2F%2Fdbpedia.org%2Fresource%2F" + resource + "%3E%0D%0A%09%09%7D%0D%0A%09%09ORDER+BY+RAND%28%29%0D%0A%09%09limit+10&format=application%2Fsparql-results%2Bjson&CXML_redir_for_subjs=121&CXML_redir_for_hrefs=&timeout=30000&debug=on&run=+Run+Query+"
-	var data = query(rq)
-	var res = json2infoArray(data)
-	return res
 }
 
 func getRedirectRes(res []information) string {
@@ -593,32 +443,6 @@ func getRedirectRes(res []information) string {
 	rd := rds[r.Intn(len(rds))]
 
 	return cleanURL(rd.val.val)
-
-}
-
-func getRedirect(item string) string {
-	/*
-		PREFIX res: <http://dbpedia.org/resource/>
-		PREFIX dbo: <http://dbpedia.org/ontology/>
-		SELECT ?property WHERE {
-		    res:Arch_Bridge dbo:wikiPageRedirects ?property
-		}
-
-		https://dbpedia.org/sparql?default-graph-uri=http%3A%2F%2Fdbpedia.org&query=PREFIX+res%3A+%3Chttp%3A%2F%2Fdbpedia.org%2Fresource%2F%3E%0D%0APREFIX+dbo%3A+%3Chttp%3A%2F%2Fdbpedia.org%2Fontology%2F%3E%0D%0A%0D%0ASELECT+%3Fproperty+WHERE+%7B+%0D%0A+++res%3AArch_Bridge+dbo%3AwikiPageRedirects+%3Fproperty%0D%0A%7D++%0D%0A&format=application%2Fsparql-results%2Bjson&CXML_redir_for_subjs=121&CXML_redir_for_hrefs=&timeout=30000&debug=on&run=+Run+Query+
-	*/
-	//fmt.Println("getting redirect for: " + item)
-	item = cleanSpecialCharacters(item)
-	var rq = "default-graph-uri=http%3A%2F%2Fdbpedia.org&query=PREFIX+res%3A+%3Chttp%3A%2F%2Fdbpedia.org%2Fresource%2F%3E%0D%0APREFIX+dbo%3A+%3Chttp%3A%2F%2Fdbpedia.org%2Fontology%2F%3E%0D%0A%0D%0ASELECT+%3Fproperty+WHERE+%7B+%0D%0A+++res%3A" + item + "+dbo%3AwikiPageRedirects+%3Fproperty%0D%0A%7D++%0D%0A&format=application%2Fsparql-results%2Bjson&CXML_redir_for_subjs=121&CXML_redir_for_hrefs=&timeout=30000&debug=on&run=+Run+Query+"
-	var data = query(rq)
-
-	if data == nil {
-		// there is no redirect
-		return "null"
-	} else {
-		// convert json structure to go-objects array (information array)
-		var res = cleanURL(string(data[0].Get("property").GetStringBytes("value")))
-		return res
-	}
 
 }
 
@@ -739,27 +563,6 @@ func getSiblingClasses(superClass string, class string) []info {
 	return res
 }
 
-func getCategories(class string) []info {
-
-	fmt.Println("getting categories for: " + class)
-	class = cleanSpecialCharacters(class)
-	var rq = "default-graph-uri=http://dbpedia.org&query=PREFIX++dct%3A++%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Fterms%2F%3E+%0D%0APREFIX+res%3A+%3Chttp%3A%2F%2Fdbpedia.org%2Fresource%2F%3E%0D%0A%0D%0ASELECT+%3Fproperty+WHERE+%7B+%0D%0A+++res%3A" + class + "+dct%3Asubject+%3Fproperty%0D%0A%7D++%0D%0AORDER+BY+%3Fproperty&format=application%2Fsparql-results%2Bjson&CXML_redir_for_subjs=121&CXML_redir_for_hrefs=&timeout=30000&debug=on&run=+Run+Query+"
-	var data = query(rq)
-
-	if data == nil {
-		var redirect = getRedirect(class)
-
-		if redirect == "null" {
-			return []info{}
-		} else {
-			return getCategories(redirect)
-		}
-	}
-
-	var res = json2infoArray(data)
-	return res
-}
-
 func getAbstract(res []information) string {
 
 	/*
@@ -812,94 +615,6 @@ func getDepiction(res []information) string {
 	return getPropRes("http://xmlns.com/foaf/0.1/depiction", res).val.val
 }
 
-/*
-func getAbstract(item string) string {
-	fmt.Println("getting abstract of " + item)
-	item = cleanSpecialCharacters(item)
-
-	var rq = "default-graph-uri=http://dbpedia.org&query=PREFIX+res%3A+%3Chttp%3A%2F%2Fdbpedia.org%2Fresource%2F%3E%0D%0APREFIX+foaf%3A%3Chttp%3A%2F%2Fxmlns.com%2Ffoaf%2F0.1%2F%3E%0D%0ASELECT+%3Fproperty+WHERE+%7B%0D%0A%09+++%09+res%3A" + item + "+foaf%3Adepiction+%3Fproperty%0D%0A%09+++%7D&format=application%2Fsparql-results%2Bjson&CXML_redir_for_subjs=121&CXML_redir_for_hrefs=&timeout=30000&debug=on&run=+Run+Query+"
-	var data = query(rq)
-	var res = json2infoArray(data)
-
-	if res == nil {
-		return "null"
-	} else {
-		return res[0].val
-	}
-}
-
-
-
-func getDepiction(item string) string {
-
-
-
-	fmt.Println("getting depiction of " + item)
-	item = cleanSpecialCharacters(item)
-	var rq = "default-graph-uri=http://dbpedia.org&query=PREFIX+res%3A+%3Chttp%3A%2F%2Fdbpedia.org%2Fresource%2F%3E%0D%0APREFIX+foaf%3A%3Chttp%3A%2F%2Fxmlns.com%2Ffoaf%2F0.1%2F%3E%0D%0ASELECT+%3Fproperty+WHERE+%7B%0D%0A%09+++%09+res%3A" + item + "+foaf%3Adepiction+%3Fproperty%0D%0A%09+++%7D&format=application%2Fsparql-results%2Bjson&CXML_redir_for_subjs=121&CXML_redir_for_hrefs=&timeout=30000&debug=on&run=+Run+Query+"
-	var data = query(rq)
-	var res = json2infoArray(data)
-
-	if res == nil {
-		return "null"
-	} else {
-		return res[0].val
-	}
-
-
-}
-*/
-
-func expandCategory(category string) []info {
-	/*
-	   PREFIX res: <http://dbpedia.org/resource/>
-	   SELECT ?property WHERE {
-	   	?property skos:broader res:Category:Arch_bridges
-	   }
-	   https://dbpedia.org/sparql?default-graph-uri=http%3A%2F%2Fdbpedia.org&query=PREFIX+res%3A+%3Chttp%3A%2F%2Fdbpedia.org%2Fresource%2F%3E%0D%0ASELECT+%3Fproperty+WHERE+%7B%0D%0A%09+++++++++%3Fproperty+skos%3Abroader+res%3ACategory%3AArch_bridges++%0D%0A%7D&format=application%2Fsparql-results%2Bjson&CXML_redir_for_subjs=121&CXML_redir_for_hrefs=&timeout=30000&debug=on&run=+Run+Query+
-	*/
-
-	fmt.Println("expanding category " + category)
-	var rq = "default-graph-uri=http%3A%2F%2Fdbpedia.org&query=PREFIX+res%3A+%3Chttp%3A%2F%2Fdbpedia.org%2Fresource%2F%3E%0D%0ASELECT+%3Fproperty+WHERE+%7B%0D%0A%09+++++++++%3Fproperty+skos%3Abroader+res%3A" + category + "++%0D%0A%7D&format=application%2Fsparql-results%2Bjson&CXML_redir_for_subjs=121&CXML_redir_for_hrefs=&timeout=30000&debug=on&run=+Run+Query+"
-	var data = query(rq)
-	var res = json2infoArray(data)
-	return res
-
-}
-
-type catDist struct {
-	answer      string
-	distractors []string
-}
-
-func getCategoryDistractors(cats []info, catsEx [][]info) []catDist {
-
-	var res = []catDist{}
-	for _, cat := range cats {
-		for _, catzEx := range catsEx {
-			for _, cex := range catzEx {
-				if cat.val == cex.val {
-					// we have a match
-					// get distractors
-					var distractors = []string{}
-					for _, catString := range catzEx {
-						if catString.val != cat.val {
-							distractors = append(distractors, catString.val)
-						}
-					}
-					// filter if there are too few distractors
-					if len(distractors) > 2 {
-						res = append(res, catDist{cat.val, distractors})
-					}
-					continue
-				}
-			}
-		}
-	}
-	return res
-
-}
-
 func json2infoArray(data []*fastjson.Value) []info {
 	// convert json structure to go-objects array (info array)
 	var res []info
@@ -934,40 +649,6 @@ func query(rawquery string) []*fastjson.Value {
 
 	return getJSON(Url.String()).Get("results", "bindings").GetArray()
 }
-
-/*
-func questionCatDist(d ItemData) Question {
-
-	if d.catDists != nil && len(d.catDists) > 0 {
-
-		// pick random cat
-		var s = rand.NewSource(time.Now().Unix())
-		var r = rand.New(s) // initialize local pseudorandom generator
-		catD := d.catDists[r.Intn(len(d.catDists))]
-
-		var question = d.item + " is a ..."
-		var answer = cleanURL(catD.answer)
-
-		rand.Seed(time.Now().UnixNano())
-
-		dest := make([]string, len(catD.distractors))
-		perm := rand.Perm(len(catD.distractors))
-
-		for i, v := range perm {
-			dest[v] = catD.distractors[i]
-		}
-
-		var d1 = cleanURL(dest[0])
-		var d2 = cleanURL(dest[1])
-		var d3 = cleanURL(dest[2])
-		return Question{question, answer, d1, d2, d3}
-
-	} else {
-		return Question{"null", "null", "null", "null", "null"}
-	}
-
-}
-*/
 
 func questionPropDist(d ItemData) Question {
 
@@ -1067,19 +748,13 @@ func questionPropLiteral(d ItemData) Question {
 		return getEmptyQuestion()
 	} else {
 		rand.Seed(time.Now().UnixNano())
-		//var s = rand.NewSource(time.Now().Unix())
-		//var r = rand.New(s) // initialize local pseudorandom generator
 		var idx = rand.Intn(len(d.properties))
 		var p = d.properties[idx]
-		//cleanURL(disambiguations[r.Intn(len(disambiguations))].val)
 
 		// get distractors
 
 		fmt.Println("getting property distractors for property " + p.typ.val)
 		var rq = "default-graph-uri=http://dbpedia.org&query=%0D%0A%0D%0APREFIX+dbo%3A+%3Chttp%3A%2F%2Fdbpedia.org%2Fontology%2F%3E%0D%0A%0D%0ASELECT++%3Fp+%3Fproperty+WHERE+%7B%0D%0A%09+++%09++%3Fp+a+dbo%3A" + d.superClass + "+%3B+%3C" + p.typ.val + "%3E%3Fproperty+.++%0D%0A%09+++%7D" + randlim + "&format=application%2Fsparql-results%2Bjson&CXML_redir_for_subjs=121&CXML_redir_for_hrefs=&timeout=30000&debug=on&run=+Run+Query+"
-		//var rq = "default-graph-uri=http://dbpedia.org&query=%0D%0A%0D%0APREFIX+dbo%3A+%3Chttp%3A%2F%2Fdbpedia.org%2Fontology%2F%3E%0D%0A%0D%0ASELECT++%3Fp+%3Fproperty+WHERE+%7B%0D%0A%09+++%09++%3Fp+a+dbo%3A" + d.superClass + "+%3B+%3C" + p.typ.val + "%3E%3Fproperty+.++%0D%0A%09+++%7D%0D%0ALIMIT+500&format=application%2Fsparql-results%2Bjson&CXML_redir_for_subjs=121&CXML_redir_for_hrefs=&timeout=30000&debug=on&run=+Run+Query+"
-
-		//var test ="default-graph-uri=http%3A%2F%2Fdbpedia.org&query=PREFIX+res%3A+%3Chttp%3A%2F%2Fdbpedia.org%2Fresource%2F%3E%0D%0APREFIX+dbo%3A+%3Chttp%3A%2F%2Fdbpedia.org%2Fontology%2F%3E%0D%0A%0D%0ASELECT+%3Fproperty+WHERE+%7B%0D%0A+++++dbo%3ABridge+%3Chttp%3A%2F%2Fdbpedia.org%2Fproperty%2Flength%3E+%3Fproperty+.%7D+LIMIT+50&format=text%2Fhtml&CXML_redir_for_subjs=121&CXML_redir_for_hrefs=&timeout=30000&debug=on&run=+Run+Query+"
 
 		var data = query(rq)
 		var res = json2infoArray(data)
@@ -1096,13 +771,7 @@ func questionPropLiteral(d ItemData) Question {
 					p = d.properties[idx]
 				}
 
-				//var prop = cleanURL(p.typ.val)
-				//"+%3B+%3C" + p.typ.val + "%3E%3F
-
 				rq = "default-graph-uri=http://dbpedia.org&query=PREFIX+res%3A+%3Chttp%3A%2F%2Fdbpedia.org%2Fresource%2F%3E%0D%0APREFIX+dbo%3A+%3Chttp%3A%2F%2Fdbpedia.org%2Fontology%2F%3E%0D%0APREFIX+dbp%3A+%3Chttp%3A%2F%2Fdbpedia.org%2Fproperty%2F%3E%0D%0A%0D%0ASELECT+%3Fproperty+WHERE+%7B%0D%0A+++++%3Fsubject+%3C" + strings.ReplaceAll(p.typ.val, "#", "%23") + "%3E%3Fproperty%0D%0A%7D" + randlim + "&format=application%2Fsparql-results%2Bjson&CXML_redir_for_subjs=121&CXML_redir_for_hrefs=&timeout=30000&debug=on&run=+Run+Query+"
-				//rq = "default-graph-uri=http://dbpedia.org&query=PREFIX+res%3A+%3Chttp%3A%2F%2Fdbpedia.org%2Fresource%2F%3E%0D%0APREFIX+dbo%3A+%3Chttp%3A%2F%2Fdbpedia.org%2Fontology%2F%3E%0D%0APREFIX+dbp%3A+%3Chttp%3A%2F%2Fdbpedia.org%2Fproperty%2F%3E%0D%0A%0D%0ASELECT+%3Fproperty+WHERE+%7B%0D%0A+++++%3Fsubject+%3C" + strings.ReplaceAll(p.typ.val, "#", "%23") + "%3E%3Fproperty%0D%0A%7D%0D%0AORDER+BY+RAND%28%29%0D%0Alimit+10&format=application%2Fsparql-results%2Bjson&CXML_redir_for_subjs=121&CXML_redir_for_hrefs=&timeout=30000&debug=on&run=+Run+Query+"
-				//fmt.Println(rq)
-				//rq = "default-graph-uri=http://dbpedia.org&query=PREFIX+res%3A+%3Chttp%3A%2F%2Fdbpedia.org%2Fresource%2F%3E%0D%0APREFIX+dbo%3A+%3Chttp%3A%2F%2Fdbpedia.org%2Fontology%2F%3E%0D%0APREFIX+dbp%3A+%3Chttp%3A%2F%2Fdbpedia.org%2Fproperty%2F%3E%0D%0A%0D%0ASELECT+%3Fproperty+WHERE+%7B%0D%0A+++++%3Fsubject+dbp%3A" + prop + "+%3Fproperty%0D%0A%7D%0D%0AORDER+BY+RAND%28%29%0D%0Alimit+10&format=application%2Fsparql-results%2Bjson&CXML_redir_for_subjs=121&CXML_redir_for_hrefs=&timeout=30000&debug=on&run=+Run+Query+"
 				data = query(rq)
 				res = json2infoArray(data)
 				t += 1
@@ -1151,13 +820,6 @@ func genQuestion(item string) QuestionWrapper {
 	fmt.Println("trying to generate a question for: " + item)
 	var d = genItem(item, true)
 
-	/*
-		for d.item == "null" {
-			item = item[:len(item)-1]
-			d = genItem(item, true)
-		}
-	*/
-
 	var qs []Question = make([]Question, 1)
 	qs[0] = rollQuestion(d)
 
@@ -1175,18 +837,12 @@ func genQuestion(item string) QuestionWrapper {
 	}
 
 	return QuestionWrapper{qs[0], d.depiction, d.abstract}
-
-	//return qs
-
-	//return []Question{questionCatDist(d), questionSiblingClasses(d), questionPropLiteral(d), questionPropLiteral(d), questionPropLiteral(d), questionPropLiteral(d), questionPropLiteral(d)}
 }
 
 func rollQuestion(d ItemData) Question {
 
 	rand.Seed(time.Now().UnixNano())
 	var roll = rand.Intn(101)
-
-	// TODO: check for valid options then roll.
 
 	if d.class != "null" && len(d.siblingClasses) > 0 {
 		if roll < 33 {
@@ -1199,7 +855,6 @@ func rollQuestion(d ItemData) Question {
 			fmt.Println("generate PropDist Question")
 			return questionPropDist(d)
 		}
-
 	} else {
 		if roll < 50 {
 			fmt.Println("generate PropLiteral Question")
@@ -1224,103 +879,3 @@ func getEmptyQuestion() Question {
 	return Question{"null", "null", "null", "null", "null"}
 
 }
-
-// TODO
-/*
-
-- filter out parenthesis and commas in queries DONE
-- get siblings of classes DONE
-- get categories DONE
-- failsafe for redirects! DONE
-- select from multiple entries (Morpeth --> is a school, a place, a band etc.) http://dbpedia.org/ontology/wikiPageDisambiguates DONE
-- get numeric properties --> ez DONE
-
-- find property distractors (e.g. Stanford University --> private university class --> is dbo:type of) DONE!
-- if no siblings, find siblings of parent class DONE --> supersiblings!
-
-
-- create hardcoded list of dbo:country!
-- get depiction (embed html link to image)
-- generate Questions YAY :)
-
-
-- compare property to siblings (find 4 with same property) POSTPONE
-
-Question generation
-- manipulate numbers (*1.05) i.e.
-
-
-
-
-// QUERIES
-PREFIX dbo: <http://dbpedia.org/ontology/>
-PREFIX res: <http://dbpedia.org/resource/>
-PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-SELECT ?s
-WHERE {
-        ?s dbo:type res:Community_school_\(England_and_Wales\)
-}
-
-
-
-*/
-
-/// CODE GRAVEYARD
-
-//class = append(class, filterInfo(classQuery, []string{"rdf-syntax-ns#type"}, []string{"dbpedia.org/ontology"})...)
-
-//var superClasses = filterInfo(res, []string{"rdf-syntax-ns#type"}, []string{"dbpedia.org/ontology"})
-//var subjects = filterInfo(queryDBP(cleanURL(class[0].val.val)), []string{"terms/subject"}, []string{})
-
-//var siblingClasses []info
-
-//for _, sub := range subjects {
-
-//var sc = queryDBPSiblings(cleanURL(class[0].val.val), cleanCategory(sub.val.val))
-//var sc = queryDBPSiblings("Bridge", cleanCategory(sub.val.val))
-
-//filterInfo(queryDBP(cleanURL(sub.val.val)), []string{"terms/subject"})
-//siblingClasses = append(siblingClasses, sc...)
-
-//}
-
-//fmt.Println("test")
-//return ItemData{class[0], superClasses, siblingClasses, subjects, superClasses}
-//return ItemData{class, superClasses}
-
-// get siblings from dbpedia sparql point to generate distractors
-
-//select ?s1
-//where {
-//  ?s1 a dbo:Bridge; dct:subject dbc:Bridges
-//}
-
-/* func queryDBPSiblings(ontology string, category string) []info {
-
-	Url, err := url.Parse("https://dbpedia.org")
-	if err != nil {
-		panic("boom")
-	}
-
-	// Raw query because DBpedia query special characters should NOT be html encoded
-	Url.Path += "/sparql"
-	Url.RawQuery = "default-graph-uri=http://dbpedia.org&query=select+?s1%0D%0Awhere+%7B%0D%0A++++%3Fs1+a+dbo%3A" + ontology + "%3B+dct%3Asubject+dbc%3A" + category + "%0D%0A%7D&format=application%2Fsparql-results%2Bjson&CXML_redir_for_subjs=121&CXML_redir_for_hrefs=&timeout=30000&debug=on&run=+Run+Query+"
-
-	//fmt.Println("Querying DBPedia with: " + Url.String())
-
-	// create json from json-string answer
-	var data = getJSON(Url.String()).Get("results", "bindings").GetArray()
-
-	// convert json structure to go-objects array (information array)
-	var res []info
-	for _, d := range data {
-
-		var t = string(d.Get("s1").GetStringBytes("type"))
-		var v = string(d.Get("s1").GetStringBytes("value"))
-		res = append(res, info{t, v})
-	}
-
-	return res
-
-}
-*/
