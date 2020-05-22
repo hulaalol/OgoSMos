@@ -169,6 +169,9 @@ $(document).ready(function(){
     London = [51.505, -0.09]
     Stuttgart = [48.775, 9.1829321]
 
+    document.getElementById("mapid").style.height = window.innerHeight;
+    document.getElementById("mapid").style.width = window.innerWidth;
+
     mymap = L.map('mapid',{renderer: L.canvas()}).setView(London, 15);
 
 

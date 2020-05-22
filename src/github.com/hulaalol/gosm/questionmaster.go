@@ -13,7 +13,7 @@ import (
 	"github.com/valyala/fastjson"
 )
 
-var stopwords = [...]string{"'s", " street", " road", " Highway", "highway ", "way", " avenue", " drive", " lane", " circus", " Row", "the "}
+var stopwords = [...]string{"'s", " street", " road", " Highway", "highway ", "way", " avenue", " drive", " lane", " circus", " Row", "the ", " place"}
 
 //var stopwords = [...]string{"'s", " street", " road", " highway", "highway ", "way", " avenue", "strait", "drive", " lane", "grove", "gardens", "place", "circus", "crescent", "bypass", "close", "square", "hill", "mews", "vale", "rise", " Row", "mead", "wharf", "walk", "the "}
 var stopwordsItem = [...]string{"great", "the", "bridge", "high", "st"}
@@ -23,7 +23,7 @@ var syllables = [...]string{"er"}
 var randlim = "%0D%0A%09%09ORDER+BY+RAND%28%29%0D%0A%09%09limit+10"
 
 var propBlacklist = [...]string{"rdf-syntax-ns#type", "wikiPageRevisionID", "owl#sameAs", "rdf-schema#comment", "rdf-schema#label", "#wasDerivedFrom", "hypernym", "depiction", "wikiPageExternalLink", "wikiPageID", "subject", "isPrimaryTopicOf", "thumbnail", "abstract",
-	"caption", "seconded", "urlname", "annotFontSize", "/property/image", "property/align", "property/footer", "imageCaption", "labelPosition", "locatorMap", "popRefCbs", "differentFrom", "popRefName", "rdf-schema#seeAlso", "property/longEw", "foaf/0.1/homepage", "property/name", "/foaf/0.1/name", "ontology/picture", "ontology/type", "dbpedia.org/property/id", "property/imageSize", "/property/title", "property/wordnet_type", "/property/note", "/property/servingSize", "/property/sourceUsda", "staticImage", "/georss/point", "/geo/wgs84", "/ontology/wikiPageDisambiguates"}
+	"caption", "seconded", "urlname", "annotFontSize", "/property/image", "property/align", "property/footnotes", "property/footer", "imageCaption", "labelPosition", "locatorMap", "popRefCbs", "differentFrom", "popRefName", "rdf-schema#seeAlso", "property/longEw", "foaf/0.1/homepage", "property/name", "/foaf/0.1/name", "ontology/picture", "ontology/type", "dbpedia.org/property/id", "property/imageSize", "/property/title", "property/wordnet_type", "/property/note", "/property/servingSize", "/property/sourceUsda", "staticImage", "/georss/point", "/geo/wgs84", "/ontology/wikiPageDisambiguates"}
 
 type information struct {
 	typ info

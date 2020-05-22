@@ -1,10 +1,38 @@
+html, body, #container /*, and all other map parent selectors*/ {
+  height: 100%;
+  overflow: hidden;
+  width: 100%;
 
-body{
-    overflow: hidden;
+
+}
+
+
+table {
+  margin: 0 auto; /* or margin: 0 auto 0 auto */
+  border-collapse: separate;
+  border-spacing: 10px;
+  text-align: center;
+
+
+  /*FONT */
+  color: #f6fbff; 
+  font-family: 'Lucida Sans', Arial, sans-serif; 
+  font-size: 20px; 
+  line-height: 26px; 
+  text-indent: 30px; 
+}
+
+.answerbutton {
+  border: 2px solid #FFF;
+  border-radius: 15px;
+  -moz-border-radius: 15px;
+  background-image: linear-gradient( 10deg, #085078, #85d8ce ); 
+  font-size: 22px;
 }
 
 #mapid {
-    height: 800px;
+    width: auto;
+    height: 100%;
     overflow: hidden;
 }
 
@@ -49,16 +77,22 @@ body{
   }
   
   .loaderC{
-    visibility: hidden;
+    /*visibility: hidden; */
+    width: 30px;
+    height: 30px;
+    left: 97%;
+    top: 3%;
+    position: absolute;
+
     cursor: pointer; /* Pointer/hand icon */
     float: left; /* Float the buttons side by side */
     border: 8px solid #8b8b8b; /* Light grey */
     border-top: 8px solid #3e8e41; /* Blue */
     border-radius: 50%;
-    width: 20px;
-    height: 20px;
+    /*width: 20px;
+    height: 20px; */
     animation: spin 1s linear infinite;
-    z-index: 10;
+    z-index: 100000;
 
   }
   .btn-group button:not(:last-child) {
@@ -78,8 +112,114 @@ body{
   }
 
   .answerbutton:hover {
-    background-color: green;
+    background-image: linear-gradient( 10deg, #1D976C, #93F9B9 ); 
+    /* background-color: green; */
   }
+
+  #questionWindow{
+    width: 100%;
+    height: 100%;
+  }
+
+  #answerWindow{
+    width: 100%;
+    height: 100%;
+  }
+
+  #questionWindowContainer{
+  width: 40%;
+  height: 30%;
+  left: 5%;
+  top: 20%;
+  position: absolute;
+  z-index: 10000;
+  pointer-events: auto;
+
+  padding: 10px;
+  border: 2px solid #FFF;
+  border-radius: 15px;
+  -moz-border-radius: 15px;
+  background-image: linear-gradient( 10deg, #085078, #85d8ce );
+
+  color: #f6fbff; 
+  font-family: 'Lucida Sans', Arial, sans-serif; 
+  line-height: 26px; 
+  text-indent: 30px;   
+  }
+
+
+  #answerWindowContainer{
+    width: 40%;
+    height: 30%;
+    left: 5%;
+    top: 20%;
+    position: absolute;
+    z-index: 10000;
+    pointer-events: auto;
+    visibility: hidden;
+  
+    padding: 10px;
+    border: 2px solid #FFF;
+    border-radius: 15px;
+    -moz-border-radius: 15px;
+    background-image: linear-gradient( 10deg, #085078, #85d8ce );
+    
+    color: #f6fbff; 
+    font-family: 'Lucida Sans', Arial, sans-serif; 
+    line-height: 26px; 
+    text-indent: 30px; 
+    }
+
+
+    #distanceDisplay{
+      width: 10%;
+      height: 3%;
+      left: 45%;
+      bottom: 2%;
+      position: absolute;
+      z-index: 10000;
+      pointer-events: auto;
+      /*visibility: hidden;*/
+    
+      padding: 10px;
+      border: 2px solid #FFF;
+      border-radius: 15px;
+      -moz-border-radius: 15px;
+      background-image: linear-gradient( 10deg, #085078, #85d8ce );
+      font-size: 20px;
+
+      color: #f6fbff; 
+      font-family: 'Lucida Sans', Arial, sans-serif; 
+      line-height: 26px; 
+      text-indent: 30px; 
+  
+      }
+
+
+      #streetSign{
+        text-align: center;
+        width: 20%;
+        height: 4%;
+        left: 40%;
+        top: 2%;
+        position: absolute;
+        z-index: 10000;
+        pointer-events: auto;
+        font-size: 26px;
+        /*visibility: hidden;*/
+      
+        padding: 10px;
+        border: 2px solid #FFF;
+        border-radius: 15px;
+        -moz-border-radius: 15px;
+        background-image: linear-gradient( 10deg, #085078, #85d8ce );  
+
+
+        color: #f6fbff; 
+        font-family: 'Lucida Sans', Arial, sans-serif; 
+        line-height: 26px; 
+        text-indent: 30px; 
+        }
 
   
   @keyframes spin {
@@ -89,3 +229,17 @@ body{
 
 
 
+/*FONT SETTINGS */
+h1 { color: #ffffff; font-family: 'Lato', sans-serif; font-size: 54px; font-weight: 300; line-height: 58px; margin: 0 0 58px; }
+
+
+p { color: #adb7bd; font-family: 'Lucida Sans', Arial, sans-serif; font-size: 16px; line-height: 26px; text-indent: 30px; margin: 0; }
+
+
+a { color: #fe921f; text-decoration: underline; }
+
+
+a:hover { color: #ffffff }
+
+
+.date { background: #fe921f; color: #ffffff; display: inline-block; font-family: 'Lato', sans-serif; font-size: 12px; font-weight: bold; line-height: 12px; letter-spacing: 1px; margin: 0 0 30px; padding: 10px 15px 8px; text-transform: uppercase; }

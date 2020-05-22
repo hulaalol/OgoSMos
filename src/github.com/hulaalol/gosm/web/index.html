@@ -22,60 +22,60 @@
 
 </head>
 <body>
+
+    <!--
     <div class="btn-group">
-        <!-- <button id="autoupdate" onclick="toggleMapUpdate()">Toggle MapUpdate</button> -->
-    <!-- <button id="hideGraph" onclick="hideGraph()">Hide graph</button>
-        <button id="car" onclick=selectCar()>Car</button>
-        <button id="bike" onclick="selectBike()">Cyclist</button>
-        <button id="pedestrian" onclick="selectPede()">Pedestrian</button>
 
-        <button id="distance" onclick="selectDistance()">Distance</button>
-        <button id="time" onclick="selectTime()">Traveltime</button>
-
-        <button id="calculate route" onclick="calcRoute()">Calculate Route</button>
-    -->
         <button id="quizNav" onclick="quizNav()">Start Quiz Navigation</button>
 
 
         <div id="loader" class="loaderC"></div>
 
       </div>
-  <div class="container">
-    <div id="routeinfo"></div>
-    <div class="unlocked" id="mapid"></div>
+    -->
 
+  <div id="container">
+    <!-- <div id="routeinfo"></div> -->
+    <div  id="mapid" class="unlocked"></div>
   </div>
-  
+ 
   <div id="questionWindowContainer">
+      <table id ="questionWindow">
+        <tr >
+          <td id="question" colspan="2">
+            Here comes the question
 
-    <table id ="questionWindow">
-      <tr id="question">
-        Here comes the question
+          </td>
+  
+        </tr>
+  
+        <tr>
+          <td class="answerbutton" id="a1" onclick="answerQuestion(event)">
+            answer1
+          </td>
+          <td class="answerbutton" id="a2" onclick="answerQuestion(event)">
+            answer2
+          </td>
+  
+  
+        </tr>
+  
+        <tr>
+          <td class="answerbutton" id="a3" onclick="answerQuestion(event)">
+            answer3
+          </td>
+          <td class="answerbutton" id="a4" onclick="answerQuestion(event)">
+            answer4
+          </td>
+        </tr>
+      </table>
+  </div>
 
-      </tr>
+  <div id="answerWindowContainer">
 
+    <table id ="answerWindow">
       <tr>
-        <td class="answerbutton" id="a1" onclick="answerQuestion(event)">
-          answer1
-        </td>
-        <td class="answerbutton" id="a2" onclick="answerQuestion(event)">
-          answer2
-        </td>
-
-
-      </tr>
-
-      <tr>
-        <td class="answerbutton" id="a3" onclick="answerQuestion(event)">
-          answer3
-        </td>
-        <td class="answerbutton" id="a4" onclick="answerQuestion(event)">
-          answer4
-        </td>
-      </tr>
-
-      <tr>
-        <td colspan="2">
+        <td>
           <img id ="depiction" src="" alt="depiction" width="400">
         </td>
       </tr>
@@ -86,17 +86,18 @@
       </tr>
     </table>
 
-    <!--
-    <div id="question"></div>
-    <div id="answers">
-      <div id="a1"></div>
-      <div id="a2"></div>
-      <div id="a3"></div>
-      <div id="a4"></div>
-    </div> -->
-
   </div>
 
+  <div id="loaderAnswer" class="loaderC"></div>
+
+  <div id="distanceDisplay">
+      2540m to Finish
+  </div>
+
+  <div id="streetSign">
+    Queen Victoria Road
+  </div>
+  
 
 </body>
 </html>

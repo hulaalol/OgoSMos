@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"time"
 )
@@ -12,9 +11,9 @@ func main() {
 
 	//defer profile.Start().Stop()
 	//var q = genQuestion("Surrey")
-	var q = genQuestion("Historic_counties_of_England")
+	//var q = genQuestion("Historic_counties_of_England")
 
-	fmt.Println(q)
+	//fmt.Println(q)
 
 	// END TEST AREA
 
