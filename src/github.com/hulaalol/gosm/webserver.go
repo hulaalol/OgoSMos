@@ -189,6 +189,7 @@ func quizNav(w http.ResponseWriter, r *http.Request) {
 			path = reversePath(path)
 
 			var currentStreet = path[0].streetname
+			fmt.Println("currently in street: " + currentStreet)
 			var qw = genQuestion(currentStreet)
 			var coords = make([]LeafletEdge, 0)
 			var eOpts = make([]LeafletEdge, 0)

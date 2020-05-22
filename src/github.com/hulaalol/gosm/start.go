@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"time"
 )
@@ -10,8 +11,10 @@ func main() {
 	file := "data/london.osm.pbf"
 
 	//defer profile.Start().Stop()
-	//var q = genQuestion("Lombard")
-	//fmt.Println(q)
+	//var q = genQuestion("Surrey")
+	var q = genQuestion("Historic_counties_of_England")
+
+	fmt.Println(q)
 
 	// END TEST AREA
 

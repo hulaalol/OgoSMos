@@ -13,7 +13,9 @@ import (
 	"github.com/valyala/fastjson"
 )
 
-var stopwords = [...]string{"'s", "street", "road", "highway", "way", "avenue", "strait", "drive", "lane", "grove", "gardens", "place", "circus", "crescent", "bypass", "close", "square", "hill", "mews", "vale", "rise", "row", "mead", "wharf", "walk", "the "}
+var stopwords = [...]string{"'s", " street", " road", " Highway", "highway ", "way", " avenue", " drive", " lane", " circus", " Row", "the "}
+
+//var stopwords = [...]string{"'s", " street", " road", " highway", "highway ", "way", " avenue", "strait", "drive", " lane", "grove", "gardens", "place", "circus", "crescent", "bypass", "close", "square", "hill", "mews", "vale", "rise", " Row", "mead", "wharf", "walk", "the "}
 var stopwordsItem = [...]string{"great", "the", "bridge", "high", "st"}
 
 //var stopwordsGER = [...]string{"weg", "straße", "strasse", "allee", "gasse", "Straße", "Weg", "Strasse", "Allee"}
@@ -174,6 +176,7 @@ func genItem(item string, getPropDists bool, followDisambiguations bool) ItemDat
 	// query
 	var res = queryDBP(item, "dbr")
 	if len(res) == 0 {
+		fmt.Println("dbr returned no results for " + item + "! Querying dbo now...")
 		res = queryDBP(item, "dbo")
 	}
 
@@ -223,18 +226,15 @@ func genItem(item string, getPropDists bool, followDisambiguations bool) ItemDat
 	var className []string
 
 	// catch weird dbpedia classes
-	if item == "England" {
-		className = []string{"Country", "dbo"}
-	} else {
-		className = getClassName(res)
-	}
+	className = getClassName(res)
 
 	// get properties
 	var props = getProps(res)
 
 	// if no class and no properties, search for disambiguations and hypernyms
 	//if className[0] == "null" && len(props) == 0 {
-	if len(props) == 0 && followDisambiguations {
+	//if len(props) == 0 && followDisambiguations {
+	if len(props) == 0 && className[0] == "null" && followDisambiguations {
 		fmt.Println("no class and no props, searching for disambiguations of " + item + "...")
 
 		/*
@@ -247,10 +247,14 @@ func genItem(item string, getPropDists bool, followDisambiguations bool) ItemDat
 
 		var disambiguations = getDisambiguationsResAll(res)
 
+		//TODO: shuffle disambiguations
+
 		for _, d := range disambiguations {
-			var dItem = genItem(d, getPropDists, false)
-			if dItem.item != "null" {
-				return dItem
+			if d != "null" {
+				var dItem = genItem(d, getPropDists, false)
+				if dItem.item != "null" {
+					return dItem
+				}
 			}
 		}
 
@@ -269,16 +273,18 @@ func genItem(item string, getPropDists bool, followDisambiguations bool) ItemDat
 	}
 
 	// get superclass
-	var cN string = "null"
-	var classQuery []information = []information{}
+	var cN string = className[0]
+	//var classQuery []information = []information{}
 	var superClass []string = []string{"null"}
 
-	if className[0] != "null" {
-		cN = className[0]
-		className[0] = cleanSpecialCharacters(className[0])
+	if className[0] != "null" && getPropDists {
+		//cN = className[0]
+		//className[0] = cleanSpecialCharacters(className[0])
 
-		classQuery = queryDBP(className[0], className[1])
-		superClass = getClassName(classQuery)
+		//classQuery = queryDBP(className[0], className[1])
+		//superClass = getClassName(classQuery)
+		var sc = getSuperClass(cN)
+		superClass = []string{sc[0].val, sc[0].typ}
 	}
 
 	// get a property distractor
@@ -297,11 +303,14 @@ func genItem(item string, getPropDists bool, followDisambiguations bool) ItemDat
 	var superClassSiblings = []info{}
 
 	if superClass[0] != "null" && cN != "null" {
-		siblingClasses = getSiblingClasses(superClass[0], cN)
+		siblingClasses = getSubClasses(superClass[0])
+		//siblingClasses = getSiblingClasses(superClass[0], cN)
 	}
 
-	if cN != "null" && !getPropDists {
-		classSiblings = getSiblings(cN)
+	//if cN != "null" && !getPropDists {
+	//	classSiblings = getSiblings(cN)
+	if cN != "null" {
+		classSiblings = getClassMembers(cN)
 	}
 
 	return ItemData{item, cN, superClass[0], siblingClasses, classSiblings, superClassSiblings, props, p, getDepiction(res), getAbstract(res)}
@@ -462,7 +471,7 @@ func getDisambiguationsResAll(res []information) []string {
 
 	var dis = getPropResAll("http://dbpedia.org/ontology/wikiPageDisambiguates", res)
 
-	var result []string = make([]string, len(dis))
+	var result []string = make([]string, 0)
 
 	for _, d := range dis {
 		result = append(result, cleanURL(d.val.val))
@@ -500,74 +509,246 @@ func getRedirectRes(res []information) string {
 
 }
 
-func getClassName(queryResult []information) []string {
-	// determine the proper class of the item
-	var classRDF = filterInfo(queryResult, []string{"rdf-syntax-ns#type", "rdf-schema#subClassOf"}, []string{"dbpedia.org/ontology", "owl#Class", "owl#Thing"})
-	var classDBO = filterInfo(queryResult, []string{"dbpedia.org/ontology/type", "rdf-schema#subClassOf"}, []string{"dbpedia.org"})
-	var class []information
-	if len(classDBO) == 0 && len(classRDF) == 0 {
-
-		//check for yago class
-		// e.g. : http://dbpedia.org/class/yago/WikicatExtinctEarldomsInThePeerageOfEngland
-		var classOther = filterInfo(queryResult, []string{"rdf-syntax-ns#type", "rdf-schema#subClassOf"}, []string{"dbpedia.org/class/"})
-
-		if len(classOther) == 0 {
-			//fmt.Println("Could not find class - setting class to Thing")
-			//return []string{"Thing", "dbo"}
-			return []string{"null"}
-		} else {
-			return []string{cleanURL(classOther[0].val.val), "other"}
+func getSubClasses(class string) []info {
+	/*
+		SELECT ?property WHERE {
+					?property <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://dbpedia.org/class/yago/Goddess109535622>
 		}
+		ORDER BY RAND()
+		LIMIT 10
+	*/
 
+	var rq = "default-graph-uri=http://dbpedia.org&query=SELECT+%3Fproperty+WHERE+%7B%0D%0A%3Fproperty+%3Chttp%3A%2F%2Fwww.w3.org%2F2000%2F01%2Frdf-schema%23subClassOf%3E+<" + class + ">%0D%0A%7D%0D%0AORDER+BY+RAND%28%29%0D%0ALIMIT+10%0D%0A%0D%0A%0D%0A&format=application%2Fsparql-results%2Bjson&CXML_redir_for_subjs=121&CXML_redir_for_hrefs=&timeout=30000&debug=on&run=+Run+Query+"
+	var data = query(rq)
+	var res = json2infoArray(data)
+
+	return res
+
+}
+
+func getClassMembers(class string) []info {
+	/*
+		SELECT ?property WHERE {
+		?property <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://dbpedia.org/class/yago/Goddess109535622>
+		}
+		ORDER BY RAND()
+		LIMIT 10
+	*/
+	var rq = "default-graph-uri=http://dbpedia.org&query=SELECT+%3Fproperty+WHERE+%7B%0D%0A%3Fproperty+%3Chttp%3A%2F%2Fwww.w3.org%2F1999%2F02%2F22-rdf-syntax-ns%23type%3E+<" + class + ">%0D%0A%7D%0D%0AORDER+BY+RAND%28%29%0D%0ALIMIT+10%0D%0A%0D%0A%0D%0A&format=application%2Fsparql-results%2Bjson&CXML_redir_for_subjs=121&CXML_redir_for_hrefs=&timeout=30000&debug=on&run=+Run+Query+"
+	var data = query(rq)
+	var res = json2infoArray(data)
+	return res
+}
+
+func getSuperClass(class string) []info {
+	/*
+		PREFIX dbo: <http://dbpedia.org/ontology/>
+		PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+
+		SELECT ?property WHERE {
+			   	   	 <http://dbpedia.org/class/yago/WikicatRomanGoddesses> rdfs:subClassOf ?property
+		}
+	*/
+	var rq = "default-graph-uri=http://dbpedia.org&query=SELECT+%3Fproperty+WHERE+%7B%0D%0A<" + class + ">+%3Chttp%3A%2F%2Fwww.w3.org%2F2000%2F01%2Frdf-schema%23subClassOf%3E+%3Fproperty%0D%0A%7D&format=application%2Fsparql-results%2Bjson&CXML_redir_for_subjs=121&CXML_redir_for_hrefs=&timeout=30000&debug=on&run=+Run+Query+"
+	var data = query(rq)
+	var res = json2infoArray(data)
+
+	if res == nil {
+		return []info{info{"null", "null"}}
 	}
-	if (len(classRDF) > 0) && (len(classRDF) < len(classDBO) || len(classDBO) == 0) {
-		class = classRDF
-	} else {
-		if len(classDBO) == 0 {
-			fmt.Println("Could not find class!")
-		} else {
-			class = classDBO
 
-		}
+	return res
+}
+
+func getClassName(queryResult []information) []string {
+
+	var classNames = getPropResAll("http://www.w3.org/1999/02/22-rdf-syntax-ns#type", queryResult)
+
+	// check if there is class information
+	if classNames[0].typ.val == "null" {
+		fmt.Println("no class information")
+		return []string{"null", "null"}
 	}
 
 	//filter classnames
 	var filter = [...]string{"http://dbpedia.org/ontology/Location", "http://dbpedia.org/ontology/Agent", "http://dbpedia.org/ontology/Person", "http://dbpedia.org/ontology/Place", "http://www.w3.org/2002/07/owl#Thing"}
+	var keep = true
 
-	var fClass []information
-	for _, c := range class {
+	// check dbo with filter
+	for _, cn := range classNames {
+		if cn.val.val == "null" {
+			continue
+		}
+		if strings.Contains(cn.val.val, "dbpedia.org/ontology") {
+			for _, f := range filter {
 
-		var skip = false
+				if strings.Contains(cn.val.val, f) {
+					keep = false
+				}
+
+			}
+			if keep {
+				fmt.Println("found dbo class matching filter " + cn.val.val)
+				return []string{cn.val.val, cn.typ.val}
+
+			}
+		}
+	}
+
+	// check dbo
+	for _, cn := range classNames {
+		if cn.val.val == "null" {
+			continue
+		}
+		if strings.Contains(cn.val.val, "dbpedia.org/ontology") {
+			fmt.Println("found dbo class without filter " + cn.val.val)
+			return []string{cn.val.val, cn.typ.val}
+		}
+	}
+
+	var subClassOf = getPropResAll("http://www.w3.org/2000/01/rdf-schema#subClassOf", queryResult)
+	keep = true
+
+	// check subclassof with filter
+	for _, cn := range subClassOf {
+		if cn.val.val == "null" {
+			continue
+		}
+		if strings.Contains(cn.val.val, "dbpedia.org/ontology") {
+			for _, f := range filter {
+				if strings.Contains(cn.val.val, f) {
+					keep = false
+				}
+
+			}
+			if keep {
+				fmt.Println("found dbo subClassOf with filter " + cn.val.val)
+				return []string{cn.val.val, cn.typ.val}
+			}
+		}
+	}
+
+	// check subclassof
+	for _, cn := range subClassOf {
+		if cn.val.val == "null" {
+			continue
+		}
+		if strings.Contains(cn.val.val, "dbpedia.org/ontology") {
+			fmt.Println("found dbo subClassOf without filter " + cn.val.val)
+			return []string{cn.val.val, cn.typ.val}
+		}
+	}
+
+	keep = true
+	//check all with filter
+	for _, cn := range classNames {
+		if cn.val.val == "null" {
+			continue
+		}
 		for _, f := range filter {
 
-			if strings.Contains(c.val.val, f) {
-				skip = true
-				continue
+			if strings.Contains(cn.val.val, f) {
+				keep = false
+			}
+
+		}
+		if keep {
+			fmt.Println("found any class with filter " + cn.val.val)
+			return []string{cn.val.val, cn.typ.val}
+		}
+	}
+
+	keep = true
+	for _, cn := range subClassOf {
+
+		if cn.val.val == "null" {
+			continue
+		}
+
+		for _, f := range filter {
+
+			if strings.Contains(cn.val.val, f) {
+				keep = false
+			}
+
+		}
+		if keep {
+			fmt.Println("found any subClassOf with filter " + cn.val.val)
+			return []string{cn.val.val, cn.typ.val}
+		}
+	}
+
+	//fallback
+	fmt.Println("found any class without filter " + classNames[0].val.val)
+	return []string{classNames[0].val.val, classNames[0].typ.val}
+
+	/*
+		// determine the proper class of the item
+		var classRDF = filterInfo(queryResult, []string{"rdf-syntax-ns#type", "rdf-schema#subClassOf"}, []string{"dbpedia.org/ontology", "owl#Class", "owl#Thing"})
+		var classDBO = filterInfo(queryResult, []string{"dbpedia.org/ontology/type", "rdf-schema#subClassOf"}, []string{"dbpedia.org"})
+		var class []information
+		if len(classDBO) == 0 && len(classRDF) == 0 {
+
+			//check for yago class
+			// e.g. : http://dbpedia.org/class/yago/WikicatExtinctEarldomsInThePeerageOfEngland
+			var classOther = filterInfo(queryResult, []string{"rdf-syntax-ns#type", "rdf-schema#subClassOf"}, []string{"dbpedia.org/class/"})
+
+			if len(classOther) == 0 {
+				//fmt.Println("Could not find class - setting class to Thing")
+				//return []string{"Thing", "dbo"}
+				return []string{"null"}
+			} else {
+				return []string{cleanURL(classOther[0].val.val), "other"}
+			}
+
+		}
+		if (len(classRDF) > 0) && (len(classRDF) < len(classDBO) || len(classDBO) == 0) {
+			class = classRDF
+		} else {
+			if len(classDBO) == 0 {
+				fmt.Println("Could not find class!")
+			} else {
+				class = classDBO
+
 			}
 		}
 
-		if !skip {
-			fClass = append(fClass, c)
+		var fClass []information
+		for _, c := range class {
+
+			var skip = false
+			for _, f := range filter {
+
+				if strings.Contains(c.val.val, f) {
+					skip = true
+					continue
+				}
+			}
+
+			if !skip {
+				fClass = append(fClass, c)
+			}
 		}
-	}
 
-	var className = ""
-	if len(fClass) > 0 {
-		className = fClass[0].val.val
-	} else {
-		// TODO: maybe prioritize the first class found
-		className = class[0].val.val
-	}
+		var className = ""
+		if len(fClass) > 0 {
+			className = fClass[0].val.val
+		} else {
+			// TODO: maybe prioritize the first class found
+			className = class[0].val.val
+		}
 
-	var typ string
+		var typ string
 
-	if strings.Contains(className, "ontology") {
-		typ = "dbo"
-	} else {
-		typ = "dbr"
-	}
+		if strings.Contains(className, "ontology") {
+			typ = "dbo"
+		} else {
+			typ = "dbr"
+		}
 
-	return []string{cleanURL(className), typ}
+		return []string{cleanURL(className), typ}
+
+	*/
 }
 
 func getSiblings(class string) []info {
@@ -878,6 +1059,9 @@ func genQuestion(item string) QuestionWrapper {
 	item = strings.ReplaceAll(item, " ", "_")
 
 	fmt.Println("trying to generate a question for: " + item)
+
+	// timeout
+
 	var d = genItem(item, true, true)
 
 	var qs []Question = make([]Question, 1)
@@ -890,9 +1074,17 @@ func genQuestion(item string) QuestionWrapper {
 		tries += 1
 	}
 
-	for isEmptyQuestion(qs[0]) {
+	for isEmptyQuestion(qs[0]) && len(item) > 0 {
 		item = item[:len(item)-1]
-		qs = []Question{rollQuestion(genItem(item, true, true))}
+
+		d = genItem(item, true, true)
+
+		var tries = 0
+		for tries < 10 && isEmptyQuestion(qs[0]) {
+			qs[0] = rollQuestion(d)
+			tries += 1
+		}
+		//qs = []Question{rollQuestion(genItem(item, true, true))}
 		//return []Question{getEmptyQuestion()}
 	}
 
