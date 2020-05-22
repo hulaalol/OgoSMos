@@ -20,7 +20,7 @@ var gameStarted = false;
 var globalQuestion;
 
 var distanceScore;
-var playerScore;
+var playerScore = 0;
 
 
 // #4CAF50
@@ -379,6 +379,7 @@ function answerQuestion(e){
         globalQuestion.cppl.addTo(mymap);
 
         var endOfPath = globalQuestion.cppl._latlngs.length;
+        var startC = globalQuestion.cppl._latlngs[0];
         var latlng = globalQuestion.cppl._latlngs[endOfPath-1][1];
     }else{
         //incorrect answer
@@ -386,8 +387,15 @@ function answerQuestion(e){
         wppl.addTo(mymap);
 
         var endOfPath = wppl._latlngs.length;
+        var startC = wppl._latlngs[0];
         var latlng = wppl._latlngs[endOfPath-1][1];
     }
+
+    // update score by adding distance of edge traveled
+    var geoDist = geoDistance(startC[0].lat, startC[0].lng, latlng.lat, latlng.lng);
+    playerScore += geoDist;
+
+    mymap.setView([latlng.lat,latlng.lng],17);
 
 
     //update abstract
@@ -431,12 +439,27 @@ function answerQuestion(e){
     document.getElementById("questionWindowContainer").style.visibility = "hidden";
     document.getElementById("answerWindowContainer").style.visibility = "visible";
 
-    setMarker(latlng).then(function(){
-     //fullfillment
-     quizNav();   
-    }, function(reason){
-        //rejection
-    });
+    latdist = Math.abs(latlng.lat - marker2._latlng.lat);
+    lngdist = Math.abs(latlng.lng - marker2._latlng.lng);
+    var delta = 0.0001;
+
+        setMarker(latlng).then(function(){
+            //fullfillment
+            if(latdist < delta && lngdist < delta){
+
+                // calculate score
+                var score = 100 - (((distanceScore/(playerScore*1000))-1)*100);
+                document.getElementById("answerWindowContainer").style.visibility = "hidden";
+                document.getElementById("finishText").innerHTML = "Awesome! You made it to the finish line!<br>The shortest possible distance was "+distanceScore+" meters - you needed "+playerScore*1000+" meters to reach the finish line.<br>Your score is "+score+" Points.";
+                document.getElementById("finishWindowContainer").style.visibility = "visible";
+                console.log("GAME OVER")
+            }else{
+                quizNav();   
+            }
+           }, function(reason){
+               //rejection
+           });
+    
 
 }
 
@@ -570,50 +593,6 @@ function quizNav(){
                 document.getElementById("depiction").style.visibility = "hidden";
                 mymap.invalidateSize()
     
-                //update textbox
-                /*
-                if(metric == "distance"){
-    
-                    if(json.Distance > 1000){
-                        var km = (json.Distance/1000).toFixed(2);
-                        var t = km+"km"
-                    }else{
-                        var t= json.Distance+"m"
-                    }
-                    var text = "Found path for "+mode+" with a distance of "+t;
-                }
-    
-                if(metric == "time"){
-    
-                    if(mode!= "car"){
-                        if(mode=="bike"){
-                            speed = 15;
-                        }else if(mode=="pedestrian"){
-                            speed = 5;
-                        }
-                        time = 3600 / ((speed*1000) / json.Distance);
-                    }else{
-                        time = json.Distance;
-                    }
-    
-    
-                        var t = time+" seconds"
-                        if(time > 60){
-                            // give minutes
-                            var t = Math.floor(time/60)+" minutes and "+Math.floor(time%60)+" seconds"
-                        }
-        
-                        if (time > 3600){
-                            // give hours
-                            var t = Math.floor(time/3600)+" hours and "+Math.floor(time%60)+" minutes"
-                        }
-    
-                    var text = "Found path for "+mode+" with a traveltime of "+t;
-                }
-                */
-    
-                //document.getElementById("routeinfo").innerHTML = text;
-
                 console.log("finished calculating shortest path...")
             }
 
@@ -844,6 +823,29 @@ if(!graphHidden){
     //document.getElementById("hideGraph").style.background='#4f4f4f';
     graphHidden = true;
 }
+}
+
+
+
+
+function geoDistance(lat1, lon1, lat2, lon2) {
+	if ((lat1 == lat2) && (lon1 == lon2)) {
+		return 0;
+	}
+	else {
+		var radlat1 = Math.PI * lat1/180;
+		var radlat2 = Math.PI * lat2/180;
+		var theta = lon1-lon2;
+		var radtheta = Math.PI * theta/180;
+		var dist = Math.sin(radlat1) * Math.sin(radlat2) + Math.cos(radlat1) * Math.cos(radlat2) * Math.cos(radtheta);
+		if (dist > 1) {
+			dist = 1;
+		}
+		dist = Math.acos(dist);
+		dist = dist * 180/Math.PI;
+		dist = dist * 60 * 1.1515;
+		return dist = dist * 1.609344;
+	}
 }
 
 // click handler functions
