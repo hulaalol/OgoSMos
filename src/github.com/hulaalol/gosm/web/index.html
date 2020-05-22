@@ -72,23 +72,31 @@
   </div>
 
   <div id="answerWindowContainer">
-
     <table id ="answerWindow">
-      <tr>
-        <td>
-          <img id ="depiction" src="" alt="depiction" width="400">
-        </td>
-      </tr>
-
       <tr >
-        <td id="abstract" colspan="2">
+        <td id="abstract"></td>
+      </tr>
+      <tr>
+        <td id="depictionCell">
+          <img id ="depiction" src="">
         </td>
       </tr>
     </table>
-
   </div>
 
-  <div id="loaderAnswer" class="loaderC"></div>
+
+  <div id="startWindowContainer">
+    <table id ="startWindow">
+      <tr >
+        <td id="startText"> Welcome to QuizNav. To start a new game, select a start and finish location by clicking on the map.</td>
+      </tr>
+      <tr>
+        <td class="answerbutton" id="start" onclick="startGame(event)">Start</td>
+      </tr>
+    </table>
+  </div>
+
+  <div id="loader" class="loaderC"></div>
 
   <div id="distanceDisplay">
       2540m to Finish

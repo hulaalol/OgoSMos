@@ -12,6 +12,8 @@ table {
   border-collapse: separate;
   border-spacing: 10px;
   text-align: center;
+  word-wrap: break-word;
+
 
 
   /*FONT */
@@ -86,8 +88,11 @@ table {
 
     cursor: pointer; /* Pointer/hand icon */
     float: left; /* Float the buttons side by side */
-    border: 8px solid #8b8b8b; /* Light grey */
-    border-top: 8px solid #3e8e41; /* Blue */
+
+    /* #085078, #85d8ce */ 
+
+    border: 8px solid #085078; /* Light grey */
+    border-top: 8px solid #85d8ce; /* Blue */
     border-radius: 50%;
     /*width: 20px;
     height: 20px; */
@@ -126,14 +131,21 @@ table {
     height: 100%;
   }
 
+  #startWindow{
+    width: 100%;
+    height: 100%;
+  }
+
   #questionWindowContainer{
   width: 40%;
   height: 30%;
   left: 5%;
   top: 20%;
   position: absolute;
-  z-index: 10000;
+  z-index: 10001;
   pointer-events: auto;
+  visibility: hidden;
+
 
   padding: 10px;
   border: 2px solid #FFF;
@@ -170,8 +182,31 @@ table {
     text-indent: 30px; 
     }
 
+    #startWindowContainer{
+      width: 40%;
+      height: 30%;
+      left: 5%;
+      top: 20%;
+      position: absolute;
+      z-index: 10000;
+      pointer-events: auto;
+      visibility: hidden;
+    
+      padding: 10px;
+      border: 2px solid #FFF;
+      border-radius: 15px;
+      -moz-border-radius: 15px;
+      background-image: linear-gradient( 10deg, #085078, #85d8ce );
+      
+      color: #f6fbff; 
+      font-family: 'Lucida Sans', Arial, sans-serif; 
+      line-height: 26px; 
+      text-indent: 30px; 
+      }
+
 
     #distanceDisplay{
+      text-align: center;
       width: 10%;
       height: 3%;
       left: 45%;
@@ -180,6 +215,8 @@ table {
       z-index: 10000;
       pointer-events: auto;
       /*visibility: hidden;*/
+      visibility: hidden;
+
     
       padding: 10px;
       border: 2px solid #FFF;
@@ -191,7 +228,7 @@ table {
       color: #f6fbff; 
       font-family: 'Lucida Sans', Arial, sans-serif; 
       line-height: 26px; 
-      text-indent: 30px; 
+      //text-indent: 30px; 
   
       }
 
@@ -206,6 +243,8 @@ table {
         z-index: 10000;
         pointer-events: auto;
         font-size: 26px;
+        visibility: hidden;
+
         /*visibility: hidden;*/
       
         padding: 10px;
@@ -221,6 +260,11 @@ table {
         text-indent: 30px; 
         }
 
+        #depiction{
+        height: 100%;
+        width: 100%;
+        object-fit: contain;
+        }
   
   @keyframes spin {
     0% { transform: rotate(0deg); }

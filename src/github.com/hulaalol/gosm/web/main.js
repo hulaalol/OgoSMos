@@ -16,7 +16,11 @@ var graphHidden;
 
 
 // quiznav globals
+var gameStarted = false;
 var globalQuestion;
+
+var distanceScore;
+var playerScore;
 
 
 // #4CAF50
@@ -269,6 +273,10 @@ $(document).ready(function(){
 
 
     initMap()
+
+    // show welcome screen
+    document.getElementById("startWindowContainer").style.visibility = "visible";
+
 });
 
 
@@ -352,6 +360,15 @@ function setMarker(latlng){
 
 }
 
+function startGame(e){
+
+    if(marker1 && marker2){
+        quizNav();
+    }else{
+        document.getElementById("startText").innerHTML  = "At least one marker is missing! Click the map to add markers.";
+    }
+}
+
 function answerQuestion(e){
 
     e = e || window.event;
@@ -372,10 +389,47 @@ function answerQuestion(e){
         var latlng = wppl._latlngs[endOfPath-1][1];
     }
 
-    //update image
-    document.getElementById("depiction").src = globalQuestion.img;
+
     //update abstract
-    document.getElementById("abstract").innerHTML = globalQuestion.abstract;
+    
+    //limit abstract
+    var a = globalQuestion.abstract;
+    if(a.length > 750){
+        a = a.substring(0,750)
+        var idx = a.lastIndexOf(".")
+        a = a.substring(0,idx+1)
+    }
+
+    if(a.length > 10){
+        document.getElementById("abstract").innerHTML = a;
+    }else{
+        document.getElementById("abstract").innerHTML = "No information was found :(";
+
+    }
+
+
+        //update image
+        var dep = document.getElementById("depiction");
+
+        //var cWidth = document.getElementById("depictionCell").offsetWidth;
+    
+        if(globalQuestion.img.length > 0 && globalQuestion.img != "null"){
+            document.getElementById("answerWindowContainer").style.height ="45%";
+            dep.src = globalQuestion.img;
+            dep.style.visibility = "visible";
+        }else{
+            document.getElementById("answerWindowContainer").style.height ="30%";
+    
+            dep.style.visibility = "hidden";
+        }
+        var cHeight = document.getElementById("depictionCell").offsetHeight;
+        //dep.style.maxWidth = cWidth+"px";
+        dep.style.maxHeight = cHeight-10+"px";
+        dep.style.minHeight = cHeight-10+"px";
+
+
+    document.getElementById("questionWindowContainer").style.visibility = "hidden";
+    document.getElementById("answerWindowContainer").style.visibility = "visible";
 
     setMarker(latlng).then(function(){
      //fullfillment
@@ -498,10 +552,22 @@ function quizNav(){
                 }
 
 
+                if(!gameStarted){
+                    distanceScore = json.DistanceToTarget;
+                    document.getElementById("startWindowContainer").style.visibility = "hidden";
+                    document.getElementById("streetSign").style.visibility = "visible";
+                    document.getElementById("distanceDisplay").style.visibility = "visible";
+                    //document.getElementById("start").style.visibility="hidden";
 
+                    gameStarted = true;
+                }
 
+                document.getElementById("streetSign").innerHTML = json.CurrentPos[0].N;
+                document.getElementById("distanceDisplay").innerHTML = json.DistanceToTarget+"m to Finish."
 
-
+                document.getElementById("answerWindowContainer").style.visibility = "hidden";
+                document.getElementById("questionWindowContainer").style.visibility = "visible";
+                document.getElementById("depiction").style.visibility = "hidden";
                 mymap.invalidateSize()
     
                 //update textbox
