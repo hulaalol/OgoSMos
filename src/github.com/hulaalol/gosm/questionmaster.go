@@ -14,16 +14,9 @@ import (
 )
 
 var stopwords = [...]string{"'s", " street", " road", " Highway", "highway ", "way", " avenue", " drive", " lane", " circus", " Row", "the ", " place", "grove", "pavement"}
-
-//var stopwords = [...]string{"'s", " street", " road", " highway", "highway ", "way", " avenue", "strait", "drive", " lane", "grove", "gardens", "place", "circus", "crescent", "bypass", "close", "square", "hill", "mews", "vale", "rise", " Row", "mead", "wharf", "walk", "the "}
 var stopwordsItem = [...]string{"great", "the", "bridge", "high", "st", "court", "mews", "square", "end", "new", "alley", "upper", "lower"}
-
-//var stopwordsGER = [...]string{"weg", "straße", "strasse", "allee", "gasse", "Straße", "Weg", "Strasse", "Allee"}
-var syllables = [...]string{"er"}
 var randlim = "%0D%0A%09%09ORDER+BY+RAND%28%29%0D%0A%09%09limit+100"
-
-var propBlacklist = [...]string{"rdf-syntax-ns#type", "wikiPageRevisionID", "owl#sameAs", "rdf-schema#comment", "rdf-schema#label", "#wasDerivedFrom", "hypernym", "depiction", "wikiPageExternalLink", "wikiPageID", "subject", "isPrimaryTopicOf", "thumbnail", "abstract",
-	"caption", "commons", "seconded", "width", "wikt", "alt", "expiry", "wikititle", "list", "gridReference", "pushLabelPosition", "small", "urlname", "annotFontSize", "/property/image", "property/align", "property/footnotes", "property/footer", "imageCaption", "labelPosition", "locatorMap", "popRefCbs", "differentFrom", "popRefName", "rdf-schema#seeAlso", "property/longEw", "foaf/0.1/homepage", "property/name", "/foaf/0.1/name", "ontology/picture", "ontology/type", "dbpedia.org/property/id", "property/imageSize", "/property/title", "property/wordnet_type", "/property/note", "/property/servingSize", "/property/sourceUsda", "staticImage", "/georss/point", "/geo/wgs84", "/ontology/wikiPageDisambiguates"}
+var propBlacklist = [...]string{"rdf-syntax-ns#type", "wikiPageRevisionID", "owl#sameAs", "rdf-schema#comment", "rdf-schema#label", "#wasDerivedFrom", "hypernym", "depiction", "wikiPageExternalLink", "wikiPageID", "subject", "isPrimaryTopicOf", "thumbnail", "abstract", "caption", "commons", "seconded", "width", "wikt", "alt", "expiry", "wikititle", "list", "gridReference", "pushLabelPosition", "small", "urlname", "annotFontSize", "/property/image", "property/align", "property/footnotes", "property/footer", "imageCaption", "labelPosition", "locatorMap", "popRefCbs", "differentFrom", "popRefName", "rdf-schema#seeAlso", "property/longEw", "foaf/0.1/homepage", "property/name", "/foaf/0.1/name", "ontology/picture", "ontology/type", "dbpedia.org/property/id", "property/imageSize", "/property/title", "property/wordnet_type", "/property/note", "/property/servingSize", "/property/sourceUsda", "staticImage", "/georss/point", "/geo/wgs84", "/ontology/wikiPageDisambiguates"}
 
 type information struct {
 	typ info
@@ -76,17 +69,6 @@ func cleanStreetname(s string) string {
 		s = strings.ReplaceAll(s, sw, "")
 		s = strings.ReplaceAll(s, strings.Title(sw), "")
 	}
-	/*
-		for _, sy := range syllables {
-
-			var syLength = len(sy)
-			var sLength = len(s)
-
-			if strings.Compare(s[sLength-1-syLength:sLength], sy) == 1 {
-				s = s[0 : sLength-1-syLength]
-			}
-		}
-	*/
 	return s
 }
 
@@ -231,25 +213,10 @@ func genItem(item string, getPropDists bool, followDisambiguations bool) ItemDat
 
 	// get properties
 	var props = getProps(res)
-
-	// if no class and no properties, search for disambiguations and hypernyms
-	//if className[0] == "null" && len(props) == 0 {
-	//if len(props) == 0 && followDisambiguations {
-
 	var disambiguations = getDisambiguationsResAll(res)
 
 	if len(props) == 0 && className[0] == "null" && followDisambiguations {
 		fmt.Println("no class and no props, searching for disambiguations of " + item + "...")
-
-		/*
-			var disambiguation = getDisambiguationsRes(res)
-
-			if disambiguation != "null" {
-				return genItem(disambiguation, getPropDists)
-
-		*/
-
-		//TODO: shuffle disambiguations
 		rand.Shuffle(len(disambiguations), func(i, j int) { disambiguations[i], disambiguations[j] = disambiguations[j], disambiguations[i] })
 
 		for _, d := range disambiguations {
@@ -261,15 +228,11 @@ func genItem(item string, getPropDists bool, followDisambiguations bool) ItemDat
 			}
 		}
 
-		//} else {
 		fmt.Println("no disambiguations, searching for hypernyms of " + item + "...")
-
 		var hypernym = getHypernymsRes(res)
 		if hypernym != "null" {
 			return genItem(hypernym, getPropDists, false)
 		}
-		//}
-
 		fmt.Println("no disambiguations and hypernyms, trying to generate props for " + item + "...")
 		var p = getProps(res)
 		return ItemData{item, "null", "null", []info{}, []info{}, []info{}, p, getPropDistractor(p), getDepiction(res), getAbstract(res), disambiguations}
@@ -277,15 +240,9 @@ func genItem(item string, getPropDists bool, followDisambiguations bool) ItemDat
 
 	// get superclass
 	var cN string = className[0]
-	//var classQuery []information = []information{}
 	var superClass []string = []string{"null"}
 
 	if className[0] != "null" && getPropDists {
-		//cN = className[0]
-		//className[0] = cleanSpecialCharacters(className[0])
-
-		//classQuery = queryDBP(className[0], className[1])
-		//superClass = getClassName(classQuery)
 		var sc = getSuperClass(cN)
 		superClass = []string{sc[0].val, sc[0].typ}
 	}
@@ -315,15 +272,11 @@ func genItem(item string, getPropDists bool, followDisambiguations bool) ItemDat
 			}
 		}
 		siblingClasses = s
-		//siblingClasses = getSiblingClasses(superClass[0], cN)
 	}
 
-	//if cN != "null" && !getPropDists {
-	//	classSiblings = getSiblings(cN)
 	if cN != "null" {
 		classSiblings = getClassMembers(cN)
 	}
-
 	return ItemData{item, cN, superClass[0], siblingClasses, classSiblings, superClassSiblings, props, p, getDepiction(res), getAbstract(res), disambiguations}
 }
 
@@ -433,11 +386,9 @@ func getPropDistractors(props []information) []propDist {
 
 func queryDBP(item string, typ string) []information {
 	var i = cleanSpecialCharacters(item)
-
 	// create json from json-string answer
 	var rq = "default-graph-uri=http://dbpedia.org&query=select+distinct+?property+?value%7B%0D%0A++" + typ + "%3A" + i + "+%3Fproperty+%3Fvalue%0D%0A%7D&format=application%2Fsparql-results%2Bjson&CXML_redir_for_subjs=121&CXML_redir_for_hrefs=&timeout=30000&debug=on&run=+Run+Query+"
 	var data = query(rq)
-
 	return json2informationArray(data)
 }
 
@@ -473,17 +424,13 @@ func getPropRes(prop string, res []information) information {
 	var s = rand.NewSource(time.Now().Unix())
 	var r = rand.New(s) // initialize local pseudorandom generator
 	d := results[r.Intn(len(results))]
-
 	return d
 
 }
 
 func getDisambiguationsResAll(res []information) []string {
-
 	var dis = getPropResAll("http://dbpedia.org/ontology/wikiPageDisambiguates", res)
-
 	var result []string = make([]string, 0)
-
 	for _, d := range dis {
 		result = append(result, cleanURL(d.val.val))
 	}
@@ -692,74 +639,6 @@ func getClassName(queryResult []information) []string {
 	//fallback
 	fmt.Println("found any class without filter " + classNames[0].val.val)
 	return []string{classNames[0].val.val, classNames[0].typ.val}
-
-	/*
-		// determine the proper class of the item
-		var classRDF = filterInfo(queryResult, []string{"rdf-syntax-ns#type", "rdf-schema#subClassOf"}, []string{"dbpedia.org/ontology", "owl#Class", "owl#Thing"})
-		var classDBO = filterInfo(queryResult, []string{"dbpedia.org/ontology/type", "rdf-schema#subClassOf"}, []string{"dbpedia.org"})
-		var class []information
-		if len(classDBO) == 0 && len(classRDF) == 0 {
-
-			//check for yago class
-			// e.g. : http://dbpedia.org/class/yago/WikicatExtinctEarldomsInThePeerageOfEngland
-			var classOther = filterInfo(queryResult, []string{"rdf-syntax-ns#type", "rdf-schema#subClassOf"}, []string{"dbpedia.org/class/"})
-
-			if len(classOther) == 0 {
-				//fmt.Println("Could not find class - setting class to Thing")
-				//return []string{"Thing", "dbo"}
-				return []string{"null"}
-			} else {
-				return []string{cleanURL(classOther[0].val.val), "other"}
-			}
-
-		}
-		if (len(classRDF) > 0) && (len(classRDF) < len(classDBO) || len(classDBO) == 0) {
-			class = classRDF
-		} else {
-			if len(classDBO) == 0 {
-				fmt.Println("Could not find class!")
-			} else {
-				class = classDBO
-
-			}
-		}
-
-		var fClass []information
-		for _, c := range class {
-
-			var skip = false
-			for _, f := range filter {
-
-				if strings.Contains(c.val.val, f) {
-					skip = true
-					continue
-				}
-			}
-
-			if !skip {
-				fClass = append(fClass, c)
-			}
-		}
-
-		var className = ""
-		if len(fClass) > 0 {
-			className = fClass[0].val.val
-		} else {
-			// TODO: maybe prioritize the first class found
-			className = class[0].val.val
-		}
-
-		var typ string
-
-		if strings.Contains(className, "ontology") {
-			typ = "dbo"
-		} else {
-			typ = "dbr"
-		}
-
-		return []string{cleanURL(className), typ}
-
-	*/
 }
 
 func getSiblings(class string) []info {
@@ -810,16 +689,6 @@ func getSiblingClasses(superClass string, class string) []info {
 }
 
 func getAbstract(res []information) string {
-
-	/*
-		the	Article	1	1	Pre-primer	12
-		be	Verb	2	2	Primer	21
-		to	Preposition	3	7, 9	Pre-primer	17
-		of	Preposition	4	4	Grade 1	12
-		and	Conjunction	5	3	Pre-primer	16
-		a	Article	6	5	Pre-primer	20
-	*/
-
 	// identify english abstract by selecting the one with the most occurences of common english words
 	var eng = []string{"the", "to", "of", "and", "a", "The"}
 	var results []information = make([]information, 0)
@@ -967,9 +836,6 @@ func questionSiblingClasses(d ItemData) Question {
 		var d1 = ds[0]
 		var d2 = ds[1]
 		var d3 = ds[2]
-		//var d1 = cleanURL(dest[0].val)
-		//var d2 = cleanURL(dest[1].val)
-		//var d3 = cleanURL(dest[2].val)
 
 		//clean Wikicat
 		answer = strings.ReplaceAll(answer, "Wikicat", "")
@@ -1040,10 +906,7 @@ func questionPropLiteral(d ItemData) Question {
 		if res == nil {
 			return getEmptyQuestion()
 		}
-
-		//var question = "The property " + cleanURL(p.typ.val) + " of " + strings.ReplaceAll(d.item, "_", " ") + " is ..."
 		var question = "The " + cleanURL(p.typ.val) + " of " + strings.ReplaceAll(d.item, "_", " ") + " is ..."
-
 		var answer = cleanURL(p.val.val)
 
 		var tmp = make([]info, 0)
@@ -1091,12 +954,8 @@ func genQuestion(item string) QuestionWrapper {
 
 	item = cleanStreetname(item)
 	item = strings.TrimSpace(item)
-
 	item = strings.ReplaceAll(item, " ", "_")
-
 	fmt.Println("trying to generate a question for: " + item)
-
-	// timeout
 
 	var d = genItem(item, true, true)
 	if d.item != "null" {
@@ -1108,7 +967,6 @@ func genQuestion(item string) QuestionWrapper {
 	qs[0] = rollQuestion(d)
 
 	var tries = 0
-
 	for tries < 10 && isEmptyQuestion(qs[0]) {
 		qs[0] = rollQuestion(d)
 		tries += 1
@@ -1183,36 +1041,6 @@ func genQuestion(item string) QuestionWrapper {
 		var sryImage = "https://upload.wikimedia.org/wikipedia/commons/4/4e/Very_sorry.svg"
 		return QuestionWrapper{Question{"What is 1+1?", "2", "3", "4", "42"}, sryImage, "Sorry no question could be generated."}
 	}
-
-	/*
-
-		for isEmptyQuestion(qs[0]) && len(item) > 0 {
-
-			rand.Seed(time.Now().UnixNano())
-
-			if len(d.disambiguations) > 0 && d.disambiguations[0] != "null" {
-				// pick random disambiguation
-				rand.Shuffle(len(d.disambiguations), func(i, j int) {
-					d.disambiguations[i], d.disambiguations[j] = d.disambiguations[j], d.disambiguations[i]
-				})
-				item = d.disambiguations[0]
-			} else {
-				//shorten string
-				item = item[:len(item)-1]
-
-			}
-
-			d = genItem(item, true, true)
-
-			//qs = []Question{rollQuestion(genItem(item, true, true))}
-			//return []Question{getEmptyQuestion()}
-		}
-
-		//clean Question
-		qs[0] = cleanQuestion(qs[0])
-
-		return QuestionWrapper{qs[0], d.depiction, d.abstract}
-	*/
 }
 
 func cleanQuestion(q Question) Question {
@@ -1235,7 +1063,6 @@ func cleanQuestion(q Question) Question {
 	q.d3 = camelRegexp(q.d3)
 
 	return q
-
 }
 
 func camelRegexp(str string) string {

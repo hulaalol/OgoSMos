@@ -127,21 +127,7 @@ func getEdgesRec(node SNode, intermediate []SNode, streetName string) Edge {
 	var eOutIdxEnd = finalOffsetsOut[node.idx+1]
 	var eOut = finalEdgesOut[eOutIdxStart:eOutIdxEnd]
 
-	/*for _, e := range eOut {
-		if e.streetname != streetName {
-			return Edge{0, 0, 0, 0, 0, 0, "finish"}
-		}
-
-	}
-	*/
-
 	for _, e := range eOut {
-
-		//if e.streetname != streetName {
-		//	fmt.Println("skipping edge with name " + e.streetname)
-		//	continue
-		//}
-
 		var isAlreadyInResult = false
 		for _, ir := range intermediate {
 			if ir.idx == e.n2idx {
@@ -153,9 +139,7 @@ func getEdgesRec(node SNode, intermediate []SNode, streetName string) Edge {
 			return e
 		}
 	}
-
 	return Edge{0, 0, 0, 0, 0, 0, "finish"}
-
 }
 
 func getEdges(node Node, path []SNode, streetName string) []SNode {
@@ -178,20 +162,9 @@ func getEdges(node Node, path []SNode, streetName string) []SNode {
 			fmt.Println("skipping first edge of path!")
 			skip = true
 		}
-		/*for _, n := range path {
-
-			if n.lat == lat && n.lon == lon {
-				skip = true
-			}
-
-		}
-		*/
 
 		if !skip {
 			var newNode = SNode{e.n2idx, finalNodes[e.n2idx].lat, finalNodes[e.n2idx].lon, e.streetname}
-
-			//result = append(result, newNode)
-
 			var follow = getEdgesRec(newNode, result, e.streetname)
 
 			// distance follow node  / node > 100m
@@ -230,7 +203,6 @@ func getEdgesOpts(node Node, path []SNode) [][]SNode {
 		var e1 = getEdges(n, path, e.streetname)
 		if len(e1) > 0 {
 			e1 = append([]SNode{SNode{node.idx, node.lat, node.lon, e.streetname}}, e1...)
-			//e1 = append(e1, SNode{node.idx, node.lat, node.lon, e.streetname})
 			result = append(result, e1)
 		}
 	}
@@ -240,7 +212,6 @@ func getEdgesOpts(node Node, path []SNode) [][]SNode {
 
 func getQuizPath(origin Node, destiny Node, mode string, metric string) (uint32, []SNode, [][]SNode) {
 	var distance, path = getPath(origin, destiny, mode, metric)
-	//var edgeOptions = getEdges(origin, path)
 	var edgeOptions = getEdgesOpts(origin, path)
 	return distance, path, edgeOptions
 }
@@ -267,7 +238,6 @@ func getPath(origin Node, destiny Node, mode string, metric string) (uint32, []S
 			path := make([]uint32, 0)
 			snames := make([]string, 0)
 
-			//for c != origin.idx {
 			for true {
 				path = append(path, c)
 				snames = append(snames, t2[c].streetname)

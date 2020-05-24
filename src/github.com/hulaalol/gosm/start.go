@@ -9,14 +9,6 @@ import (
 func main() {
 
 	file := "data/london.osm.pbf"
-
-	//defer profile.Start().Stop()
-	//var q = genQuestion("Surrey")
-	//var q = genQuestion("St Swithin's Lane")
-
-	//fmt.Println(q)
-
-	// END TEST AREA
 	rand.Seed(time.Now().UnixNano())
 
 	startTime := time.Now()

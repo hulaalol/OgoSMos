@@ -1,6 +1,3 @@
-
-
-
 var markerSet = false;
 var marker1;
 var marker2;
@@ -72,7 +69,6 @@ async function initMap(map){
             mymap.invalidateSize()
             console.log("finished init map!")
             
-
             //unlock map
             document.getElementById("mapid").setAttribute("class", "unlocked");
             //toggleMapUpdate()
@@ -98,7 +94,6 @@ async function initMap(map){
 async function updateMap(map, bounds, zoomLevel){
 
     activateLoader();
-    //clearMap(map)
     // lock map
     document.getElementById("mapid").setAttribute("class", "locked");
 
@@ -110,9 +105,7 @@ async function updateMap(map, bounds, zoomLevel){
     
         xhr.onreadystatechange = function () {
         if (xhr.readyState === 4 && xhr.status === 200) {
-            //console.log(xhr.responseText);
             var json = JSON.parse(xhr.responseText);
-            //console.log(json.Name);    
             function smoothFactorCalc(z){
                 return Math.round(1 + Math.exp(-1.3*z+16.5))
             }
@@ -169,11 +162,7 @@ async function updateMap(map, bounds, zoomLevel){
 
 $(document).ready(function(){
 
-
-    //London = [51.505, -0.09]
-    //51.515205894073105/-0.09278297424316408
     London = [51.515, -0.09]
-
     Stuttgart = [48.775, 9.1829321]
 
     document.getElementById("mapid").style.height = window.innerHeight;
@@ -181,15 +170,10 @@ $(document).ready(function(){
 
     mymap = L.map('mapid',{renderer: L.canvas()}).setView(London, 15);
 
-
-    //selectCar();
     mode= "car";
     metric = "distance";
     graphHidden = true;
-    //selectDistance();
     
-
-    //mymap.on("moveend", async function () {
     mymap.on("moveend", async function () {
 
 
@@ -203,12 +187,9 @@ $(document).ready(function(){
             return
         }
 
-        //if(autoUpdate && !hideGraph){
         if(!graphHidden){
 
             var bounds = mymap.getBounds()
-            //var loc = mymap.getCenter();
-            //console.log(loc.toString());
             await updateMap(mymap, bounds, mymap.getZoom())
             console.log("fire update edges")
         }else{
@@ -235,7 +216,6 @@ $(document).ready(function(){
             marker1 = new L.marker(event.latlng)
 
              // send request to server
-
             marker1.bindTooltip("Start", 
             {
                 permanent: true, 
@@ -423,18 +403,11 @@ function answerQuestion(e){
             var latlng = wppl._latlngs[endOfPath-1][1];
 
     }
-
-
-    // update score by adding distance of edge traveled
-    //var geoDist = geoDistance(startC[0].lat, startC[0].lng, latlng.lat, latlng.lng);
-    //playerScore += geoDist;
-
     console.log("Current player score is "+playerScore)
     mymap.setView([latlng.lat,latlng.lng],17);
 
 
     //update abstract
-    
     //limit abstract
     var a = globalQuestion.abstract;
     if(a.length > 750){
@@ -452,15 +425,6 @@ function answerQuestion(e){
 
 
         //update image
-        //var dep = document.getElementById("depiction");
-
-        //var cWidth = document.getElementById("depictionCell").offsetWidth;
-    
-        //dep.style.maxWidth = cWidth+"px";
-
-        //dep.style.maxHeight = cHeight-10+"px";
-        //dep.style.minHeight = cHeight-10+"px";
-
         if(document.getElementById("depiction")){
             document.getElementById("depiction").outerHTML = "";
         }
@@ -473,24 +437,13 @@ function answerQuestion(e){
             var x = document.createElement("IMG");
             x.setAttribute("src", globalQuestion.img);
             x.setAttribute("id","depiction");
-
             //x.style.maxHeight = cHeight+"px";
             //x.style.minHeight = cHeight+"px";
 
             document.getElementById("depictionCell").appendChild(x);
-
-            //dep.src = globalQuestion.img;
-            //dep.style.visibility = "visible";
         }else{
             document.getElementById("answerWindowContainer").style.height ="30%";
-            
-
-           
-
-            //dep.style.visibility = "hidden";
         }
-
-
 
     document.getElementById("questionWindowContainer").style.visibility = "hidden";
     document.getElementById("answerWindowContainer").style.visibility = "visible";
@@ -500,13 +453,9 @@ function answerQuestion(e){
     var delta = 0.0001;
 
         setMarker(latlng).then(function(){
-            //fullfillment
             if(latdist < delta && lngdist < delta){
-
                 // calculate score
-
                 var score = Math.round( 100*(1- Math.abs(1- (distanceScore/playerScore))) );
-                //var score = 100 - (((distanceScore/(playerScore*1000))-1)*100);
                 document.getElementById("answerWindowContainer").style.visibility = "hidden";
                 document.getElementById("finishText").innerHTML = "Awesome! You made it to the finish line!<br>The shortest possible distance was "+distanceScore+" meters - you needed "+Math.round(playerScore)+" meters to reach the finish line.<br>Your score is "+score+" Points.";
                 document.getElementById("finishWindowContainer").style.visibility = "visible";
@@ -521,7 +470,6 @@ function answerQuestion(e){
 
 }
 
-
 function setQuestion(question){
 
     document.getElementById("question").innerHTML = question.Item;
@@ -532,10 +480,7 @@ function setQuestion(question){
 
     for(var i=0;i<aIdx.length;i++){
         document.getElementById("a"+aIdx[i]).innerHTML = answers[i];
-        //document.getElementById("a"+aIdx[i]).fontWeight="normal";
     }
-    //document.getElementById("a"+aIdx[0]).style.fontWeight="bold";
-
     globalQuestion = question;
     globalQuestion.AnswerID = "a"+aIdx[0];
 }
@@ -643,17 +588,13 @@ function quizNav(){
                     document.getElementById("startWindowContainer").style.visibility = "hidden";
                     document.getElementById("streetSign").style.visibility = "visible";
                     document.getElementById("distanceDisplay").style.visibility = "visible";
-                    //document.getElementById("start").style.visibility="hidden";
-
                     gameStarted = true;
                 }
 
                 document.getElementById("streetSign").innerHTML = json.CurrentPos[0].N;
                 document.getElementById("distanceDisplay").innerHTML = json.DistanceToTarget+"m to Finish."
 
-                //document.getElementById("answerWindowContainer").style.visibility = "hidden";
                 document.getElementById("questionWindowContainer").style.visibility = "visible";
-                //document.getElementById("depiction").style.visibility = "hidden";
                 mymap.invalidateSize()
     
                 console.log("finished calculating shortest path...")
@@ -675,11 +616,6 @@ function quizNav(){
 
 
 }
-
-
-
-
-
 
 
 function calcRoute(){
@@ -772,27 +708,14 @@ function calcRoute(){
                 }
     
                 document.getElementById("routeinfo").innerHTML = text;
-    
-    
-    
-    
                 console.log("finished calculating shortest path...")
             }
-
-           
-
             //unlock map
             document.getElementById("mapid").setAttribute("class", "unlocked");
             deactivateLoader();
             resolve(1)
         }
         }
-
-    
-    
-        //var data = JSON.stringify({"do": "dijkstra", "mode": mode,
-          //                          "startLat": marker1.getLatLng().lat, "startLon": marker1.getLatLng().lng,
-            //                        "targetLat": marker2.getLatLng().lat, "targetLon": marker2.getLatLng().lng});
 
         var data = JSON.stringify({"do": "dijkstra", "mode": mode, "metric": metric});
     
@@ -842,18 +765,6 @@ function selectTime(){
 }
 
 
-//function toggleMapUpdate(){
-//    if(autoUpdate){
-//        document.getElementById("autoupdate").setAttribute("class", "deactivatedBtn");
-//        autoUpdate = false;
-//    }else{
-//        document.getElementById("autoupdate").setAttribute("class", "activatedBtn");
-//        updateMap(mymap, mymap.getBounds(), mymap.getZoom())
-//        autoUpdate = true;
-//    }
-//}
-
-
 function activateLoader(){
     document.getElementById("loader").style.visibility = "visible";
 }
@@ -871,7 +782,6 @@ if(!graphHidden){
         }
     });
     document.getElementById("hideGraph").innerHTML = "Show graph";
-    //document.getElementById("hideGraph").style.background='#17fc03';
     graphHidden = true
 
 }else{
@@ -883,13 +793,9 @@ if(!graphHidden){
     }
     
     document.getElementById("hideGraph").innerHTML = "Hide graph";
-    //document.getElementById("hideGraph").style.background='#4f4f4f';
     graphHidden = true;
 }
 }
-
-
-
 
 function geoDistance(lat1, lon1, lat2, lon2) {
 	if ((lat1 == lat2) && (lon1 == lon2)) {
@@ -910,12 +816,3 @@ function geoDistance(lat1, lon1, lat2, lon2) {
 		return dist = dist * 1.609344;
 	}
 }
-
-// click handler functions
-
-    // click handler functions
-    
-    
-    
-    
-    
