@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"math/rand"
 	"time"
 )
 
@@ -16,6 +17,7 @@ func main() {
 	//fmt.Println(q)
 
 	// END TEST AREA
+	rand.Seed(time.Now().UnixNano())
 
 	startTime := time.Now()
 	log.Printf("start parsing")

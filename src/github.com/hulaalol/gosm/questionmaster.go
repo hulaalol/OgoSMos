@@ -16,14 +16,14 @@ import (
 var stopwords = [...]string{"'s", " street", " road", " Highway", "highway ", "way", " avenue", " drive", " lane", " circus", " Row", "the ", " place"}
 
 //var stopwords = [...]string{"'s", " street", " road", " highway", "highway ", "way", " avenue", "strait", "drive", " lane", "grove", "gardens", "place", "circus", "crescent", "bypass", "close", "square", "hill", "mews", "vale", "rise", " Row", "mead", "wharf", "walk", "the "}
-var stopwordsItem = [...]string{"great", "the", "bridge", "high", "st"}
+var stopwordsItem = [...]string{"great", "the", "bridge", "high", "st", "court", "mews", "square", "end", "new", "alley", "upper", "lower"}
 
 //var stopwordsGER = [...]string{"weg", "straße", "strasse", "allee", "gasse", "Straße", "Weg", "Strasse", "Allee"}
 var syllables = [...]string{"er"}
-var randlim = "%0D%0A%09%09ORDER+BY+RAND%28%29%0D%0A%09%09limit+10"
+var randlim = "%0D%0A%09%09ORDER+BY+RAND%28%29%0D%0A%09%09limit+100"
 
 var propBlacklist = [...]string{"rdf-syntax-ns#type", "wikiPageRevisionID", "owl#sameAs", "rdf-schema#comment", "rdf-schema#label", "#wasDerivedFrom", "hypernym", "depiction", "wikiPageExternalLink", "wikiPageID", "subject", "isPrimaryTopicOf", "thumbnail", "abstract",
-	"caption", "seconded", "urlname", "annotFontSize", "/property/image", "property/align", "property/footnotes", "property/footer", "imageCaption", "labelPosition", "locatorMap", "popRefCbs", "differentFrom", "popRefName", "rdf-schema#seeAlso", "property/longEw", "foaf/0.1/homepage", "property/name", "/foaf/0.1/name", "ontology/picture", "ontology/type", "dbpedia.org/property/id", "property/imageSize", "/property/title", "property/wordnet_type", "/property/note", "/property/servingSize", "/property/sourceUsda", "staticImage", "/georss/point", "/geo/wgs84", "/ontology/wikiPageDisambiguates"}
+	"caption", "commons", "seconded", "width", "expiry", "wikititle", "list", "gridReference", "pushLabelPosition", "small", "urlname", "annotFontSize", "/property/image", "property/align", "property/footnotes", "property/footer", "imageCaption", "labelPosition", "locatorMap", "popRefCbs", "differentFrom", "popRefName", "rdf-schema#seeAlso", "property/longEw", "foaf/0.1/homepage", "property/name", "/foaf/0.1/name", "ontology/picture", "ontology/type", "dbpedia.org/property/id", "property/imageSize", "/property/title", "property/wordnet_type", "/property/note", "/property/servingSize", "/property/sourceUsda", "staticImage", "/georss/point", "/geo/wgs84", "/ontology/wikiPageDisambiguates"}
 
 type information struct {
 	typ info
@@ -360,7 +360,7 @@ type propDist struct {
 func getPropDistractor(props []information) []propDist {
 
 	// get only one item
-	rand.Seed(time.Now().UnixNano())
+	//rand.Seed(time.Now().UnixNano())
 
 	p := rand.Perm(len(props))
 
@@ -395,7 +395,7 @@ func getPropDistractor(props []information) []propDist {
 	}
 
 	if len(superRes) > 0 {
-		rand.Seed(time.Now().UnixNano())
+		//rand.Seed(time.Now().UnixNano())
 		var idx = rand.Intn(len(superRes))
 		return []propDist{superRes[idx]}
 	} else {
@@ -518,7 +518,7 @@ func getSubClasses(class string) []info {
 		LIMIT 10
 	*/
 
-	var rq = "default-graph-uri=http://dbpedia.org&query=SELECT+%3Fproperty+WHERE+%7B%0D%0A%3Fproperty+%3Chttp%3A%2F%2Fwww.w3.org%2F2000%2F01%2Frdf-schema%23subClassOf%3E+<" + class + ">%0D%0A%7D%0D%0AORDER+BY+RAND%28%29%0D%0ALIMIT+10%0D%0A%0D%0A%0D%0A&format=application%2Fsparql-results%2Bjson&CXML_redir_for_subjs=121&CXML_redir_for_hrefs=&timeout=30000&debug=on&run=+Run+Query+"
+	var rq = "default-graph-uri=http://dbpedia.org&query=SELECT+%3Fproperty+WHERE+%7B%0D%0A%3Fproperty+%3Chttp%3A%2F%2Fwww.w3.org%2F2000%2F01%2Frdf-schema%23subClassOf%3E+<" + class + ">%0D%0A%7D%0D%0AORDER+BY+RAND%28%29%0D%0ALIMIT+100%0D%0A%0D%0A%0D%0A&format=application%2Fsparql-results%2Bjson&CXML_redir_for_subjs=121&CXML_redir_for_hrefs=&timeout=30000&debug=on&run=+Run+Query+"
 	var data = query(rq)
 	var res = json2infoArray(data)
 
@@ -534,7 +534,7 @@ func getClassMembers(class string) []info {
 		ORDER BY RAND()
 		LIMIT 10
 	*/
-	var rq = "default-graph-uri=http://dbpedia.org&query=SELECT+%3Fproperty+WHERE+%7B%0D%0A%3Fproperty+%3Chttp%3A%2F%2Fwww.w3.org%2F1999%2F02%2F22-rdf-syntax-ns%23type%3E+<" + class + ">%0D%0A%7D%0D%0AORDER+BY+RAND%28%29%0D%0ALIMIT+10%0D%0A%0D%0A%0D%0A&format=application%2Fsparql-results%2Bjson&CXML_redir_for_subjs=121&CXML_redir_for_hrefs=&timeout=30000&debug=on&run=+Run+Query+"
+	var rq = "default-graph-uri=http://dbpedia.org&query=SELECT+%3Fproperty+WHERE+%7B%0D%0A%3Fproperty+%3Chttp%3A%2F%2Fwww.w3.org%2F1999%2F02%2F22-rdf-syntax-ns%23type%3E+<" + class + ">%0D%0A%7D%0D%0AORDER+BY+RAND%28%29%0D%0ALIMIT+100%0D%0A%0D%0A%0D%0A&format=application%2Fsparql-results%2Bjson&CXML_redir_for_subjs=121&CXML_redir_for_hrefs=&timeout=30000&debug=on&run=+Run+Query+"
 	var data = query(rq)
 	var res = json2infoArray(data)
 	return res
@@ -899,10 +899,10 @@ func questionPropDist(d ItemData) Question {
 		var r = rand.New(s)
 		propD := d.propertyDists[r.Intn(len(d.propertyDists))]
 
-		var question = d.item + "(" + propD.property + ")" + " is  ..."
+		var question = "The " + cleanURL(propD.property) + " of " + strings.ReplaceAll(d.item, "_", " ") + " is ..."
 		var answer = propD.answer
 
-		rand.Seed(time.Now().UnixNano())
+		//rand.Seed(time.Now().UnixNano())
 
 		dest := make([]info, len(propD.distractors))
 		perm := rand.Perm(len(propD.distractors))
@@ -924,7 +924,7 @@ func questionPropDist(d ItemData) Question {
 
 func questionSiblingClasses(d ItemData) Question {
 
-	var question = d.item + " is a ..."
+	var question = strings.ReplaceAll(d.item, "_", " ") + " is a ..."
 	var answer = d.class
 
 	var nD = len(d.siblingClasses)
@@ -933,7 +933,7 @@ func questionSiblingClasses(d ItemData) Question {
 	if d.siblingClasses != nil && len(d.siblingClasses) > 0 {
 
 		// shuffle siblings
-		rand.Seed(time.Now().UnixNano())
+		//rand.Seed(time.Now().UnixNano())
 
 		dest := make([]info, len(d.siblingClasses))
 		perm := rand.Perm(len(d.siblingClasses))
@@ -959,6 +959,12 @@ func questionSiblingClasses(d ItemData) Question {
 		//var d1 = cleanURL(dest[0].val)
 		//var d2 = cleanURL(dest[1].val)
 		//var d3 = cleanURL(dest[2].val)
+
+		//clean Wikicat
+		answer = strings.ReplaceAll(answer, "Wikicat", "")
+		d1 = strings.ReplaceAll(d1, "Wikicat", "")
+		d2 = strings.ReplaceAll(d2, "Wikicat", "")
+		d3 = strings.ReplaceAll(d3, "Wikicat", "")
 
 		return Question{question, answer, d1, d2, d3}
 	} else {
@@ -988,7 +994,7 @@ func questionPropLiteral(d ItemData) Question {
 	if d.properties == nil || len(d.properties) == 0 {
 		return getEmptyQuestion()
 	} else {
-		rand.Seed(time.Now().UnixNano())
+		//rand.Seed(time.Now().UnixNano())
 		var idx = rand.Intn(len(d.properties))
 		var p = d.properties[idx]
 
@@ -1007,7 +1013,7 @@ func questionPropLiteral(d ItemData) Question {
 
 				//fallback to all objects ignoring superclass
 				if t > 0 {
-					rand.Seed(time.Now().UnixNano())
+					//rand.Seed(time.Now().UnixNano())
 					idx = rand.Intn(len(d.properties))
 					p = d.properties[idx]
 				}
@@ -1024,10 +1030,12 @@ func questionPropLiteral(d ItemData) Question {
 			return getEmptyQuestion()
 		}
 
-		var question = "The property " + p.typ.val + " of " + d.item + " is ..."
-		var answer = p.val.val
+		//var question = "The property " + cleanURL(p.typ.val) + " of " + strings.ReplaceAll(d.item, "_", " ") + " is ..."
+		var question = "The " + cleanURL(p.typ.val) + " of " + strings.ReplaceAll(d.item, "_", " ") + " is ..."
 
-		rand.Seed(time.Now().UnixNano())
+		var answer = cleanURL(p.val.val)
+
+		//rand.Seed(time.Now().UnixNano())
 
 		dest := make([]info, len(res))
 		perm := rand.Perm(len(res))
@@ -1088,19 +1096,52 @@ func genQuestion(item string) QuestionWrapper {
 		//return []Question{getEmptyQuestion()}
 	}
 
+	//clean Question
+	qs[0] = cleanQuestion(qs[0])
+
 	return QuestionWrapper{qs[0], d.depiction, d.abstract}
+}
+
+func cleanQuestion(q Question) Question {
+
+	q.answer = cleanURL(q.answer)
+	q.d1 = cleanURL(q.d1)
+	q.d2 = cleanURL(q.d2)
+	q.d3 = cleanURL(q.d3)
+
+	q.item = strings.ReplaceAll(q.item, "_", " ")
+	q.answer = strings.ReplaceAll(q.answer, "_", " ")
+	q.d1 = strings.ReplaceAll(q.d1, "_", " ")
+	q.d2 = strings.ReplaceAll(q.d2, "_", " ")
+	q.d3 = strings.ReplaceAll(q.d3, "_", " ")
+
+	q.item = camelRegexp(q.item)
+	q.answer = camelRegexp(q.answer)
+	q.d1 = camelRegexp(q.d1)
+	q.d2 = camelRegexp(q.d2)
+	q.d3 = camelRegexp(q.d3)
+
+	return q
+
+}
+
+func camelRegexp(str string) string {
+	re := regexp.MustCompile(`([A-Z]+)`)
+	str = re.ReplaceAllString(str, ` $1`)
+	str = strings.Trim(str, " ")
+	return str
 }
 
 func rollQuestion(d ItemData) Question {
 
-	rand.Seed(time.Now().UnixNano())
+	//rand.Seed(time.Now().UnixNano())
 	var roll = rand.Intn(101)
 
 	if d.class != "null" && len(d.siblingClasses) > 0 {
-		if roll < 33 {
+		if roll < 40 {
 			fmt.Println("generate SiblingClass Question")
 			return questionSiblingClasses(d)
-		} else if roll < 66 {
+		} else if roll < 80 {
 			fmt.Println("generate PropLiteral Question")
 			return questionPropLiteral(d)
 		} else {
@@ -1108,7 +1149,7 @@ func rollQuestion(d ItemData) Question {
 			return questionPropDist(d)
 		}
 	} else {
-		if roll < 50 {
+		if roll < 70 {
 			fmt.Println("generate PropLiteral Question")
 			return questionPropLiteral(d)
 		} else {

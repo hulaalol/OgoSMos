@@ -170,7 +170,10 @@ async function updateMap(map, bounds, zoomLevel){
 $(document).ready(function(){
 
 
-    London = [51.505, -0.09]
+    //London = [51.505, -0.09]
+    //51.515205894073105/-0.09278297424316408
+    London = [51.515, -0.09]
+
     Stuttgart = [48.775, 9.1829321]
 
     document.getElementById("mapid").style.height = window.innerHeight;
@@ -218,6 +221,11 @@ $(document).ready(function(){
 
 
     mymap.on('click', function(event){
+
+        if(gameStarted){
+            return
+        }
+
 
         if(!markerSet){
             //set marker 1
@@ -360,6 +368,12 @@ function setMarker(latlng){
 
 }
 
+
+function continueGame(e){
+        document.getElementById("answerWindowContainer").style.visibility = "hidden";
+        document.getElementById("questionWindowContainer").style.visibility = "visible";
+}
+
 function startGame(e){
 
     if(marker1 && marker2){
@@ -425,23 +439,44 @@ function answerQuestion(e){
 
 
         //update image
-        var dep = document.getElementById("depiction");
+        //var dep = document.getElementById("depiction");
 
         //var cWidth = document.getElementById("depictionCell").offsetWidth;
     
+        //dep.style.maxWidth = cWidth+"px";
+
+        //dep.style.maxHeight = cHeight-10+"px";
+        //dep.style.minHeight = cHeight-10+"px";
+
+        if(document.getElementById("depiction")){
+            document.getElementById("depiction").outerHTML = "";
+        }
+
         if(globalQuestion.img.length > 0 && globalQuestion.img != "null"){
-            document.getElementById("answerWindowContainer").style.height ="45%";
-            dep.src = globalQuestion.img;
-            dep.style.visibility = "visible";
+            document.getElementById("answerWindowContainer").style.height ="55%";
+
+            var cHeight = document.getElementById("depictionRow").offsetHeight;
+
+            var x = document.createElement("IMG");
+            x.setAttribute("src", globalQuestion.img);
+            x.setAttribute("id","depiction");
+
+            //x.style.maxHeight = cHeight+"px";
+            //x.style.minHeight = cHeight+"px";
+
+            document.getElementById("depictionCell").appendChild(x);
+
+            //dep.src = globalQuestion.img;
+            //dep.style.visibility = "visible";
         }else{
             document.getElementById("answerWindowContainer").style.height ="30%";
-    
-            dep.style.visibility = "hidden";
+            
+
+           
+
+            //dep.style.visibility = "hidden";
         }
-        var cHeight = document.getElementById("depictionCell").offsetHeight;
-        //dep.style.maxWidth = cWidth+"px";
-        dep.style.maxHeight = cHeight-10+"px";
-        dep.style.minHeight = cHeight-10+"px";
+
 
 
     document.getElementById("questionWindowContainer").style.visibility = "hidden";
@@ -601,9 +636,9 @@ function quizNav(){
                 document.getElementById("streetSign").innerHTML = json.CurrentPos[0].N;
                 document.getElementById("distanceDisplay").innerHTML = json.DistanceToTarget+"m to Finish."
 
-                document.getElementById("answerWindowContainer").style.visibility = "hidden";
+                //document.getElementById("answerWindowContainer").style.visibility = "hidden";
                 document.getElementById("questionWindowContainer").style.visibility = "visible";
-                document.getElementById("depiction").style.visibility = "hidden";
+                //document.getElementById("depiction").style.visibility = "hidden";
                 mymap.invalidateSize()
     
                 console.log("finished calculating shortest path...")
