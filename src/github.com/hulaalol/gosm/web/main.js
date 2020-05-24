@@ -389,13 +389,24 @@ function answerQuestion(e){
     var target= e.target || e.srcElement;
     
     if(target.id == globalQuestion.AnswerID){
+
+        var audio = new Audio('correct.mp3');
+        audio.play();
+
+
         //correct answer
         globalQuestion.cppl.addTo(mymap);
 
         var endOfPath = globalQuestion.cppl._latlngs.length;
-        var startC = globalQuestion.cppl._latlngs[0];
+        //var startC = globalQuestion.cppl._latlngs[0];
         var latlng = globalQuestion.cppl._latlngs[endOfPath-1][1];
+        playerScore += globalQuestion.cppl.options.distance;
+
+        
     }else{
+        var audio = new Audio('wrong.mp3');
+        audio.play();
+
 
         if(globalQuestion.wppls.length == 0){
             var wppl = globalQuestion.cppl;
@@ -406,17 +417,19 @@ function answerQuestion(e){
         }
 
             wppl.addTo(mymap);
-
+            playerScore += wppl.options.distance;
             var endOfPath = wppl._latlngs.length;
-            var startC = wppl._latlngs[0];
+            //var startC = wppl._latlngs[0];
             var latlng = wppl._latlngs[endOfPath-1][1];
-             
+
     }
 
-    // update score by adding distance of edge traveled
-    var geoDist = geoDistance(startC[0].lat, startC[0].lng, latlng.lat, latlng.lng);
-    playerScore += geoDist;
 
+    // update score by adding distance of edge traveled
+    //var geoDist = geoDistance(startC[0].lat, startC[0].lng, latlng.lat, latlng.lng);
+    //playerScore += geoDist;
+
+    console.log("Current player score is "+playerScore)
     mymap.setView([latlng.lat,latlng.lng],17);
 
 
@@ -491,9 +504,11 @@ function answerQuestion(e){
             if(latdist < delta && lngdist < delta){
 
                 // calculate score
-                var score = 100 - (((distanceScore/(playerScore*1000))-1)*100);
+
+                var score = Math.round( 100*(1- Math.abs(1- (distanceScore/playerScore))) );
+                //var score = 100 - (((distanceScore/(playerScore*1000))-1)*100);
                 document.getElementById("answerWindowContainer").style.visibility = "hidden";
-                document.getElementById("finishText").innerHTML = "Awesome! You made it to the finish line!<br>The shortest possible distance was "+distanceScore+" meters - you needed "+playerScore*1000+" meters to reach the finish line.<br>Your score is "+score+" Points.";
+                document.getElementById("finishText").innerHTML = "Awesome! You made it to the finish line!<br>The shortest possible distance was "+distanceScore+" meters - you needed "+Math.round(playerScore)+" meters to reach the finish line.<br>Your score is "+score+" Points.";
                 document.getElementById("finishWindowContainer").style.visibility = "visible";
                 console.log("GAME OVER")
             }else{
@@ -588,7 +603,7 @@ function quizNav(){
                     correctPath.push([[edge[0], edge[1]], [edge[2], edge[3]]]);
                 }
 
-                var cppl = L.polyline(correctPath, {color: "green", interactive: false});
+                var cppl = L.polyline(correctPath, {color: "green", interactive: false, distance: json.CurrentPosDistance});
                 cppl.id = "correctPath";
                 //cppl.addTo(mymap);
 
@@ -603,7 +618,7 @@ function quizNav(){
 
 
                     }
-                    var wppl = L.polyline(wrongPath, {color:"red",interactive: false});
+                    var wppl = L.polyline(wrongPath, {color:"red",interactive: false, distance: json.DistractorEdgesDistance[i]});
                     wppl.id = "dE"+i;
                     //wppl.addTo(mymap);
                     wppls.push(wppl);

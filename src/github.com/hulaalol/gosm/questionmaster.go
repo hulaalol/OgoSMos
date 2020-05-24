@@ -157,16 +157,17 @@ type Question struct {
 }
 
 type ItemData struct {
-	item           string
-	class          string
-	superClass     string
-	siblingClasses []info
-	siblings       []info
-	supersiblings  []info
-	properties     []information
-	propertyDists  []propDist
-	depiction      string
-	abstract       string
+	item            string
+	class           string
+	superClass      string
+	siblingClasses  []info
+	siblings        []info
+	supersiblings   []info
+	properties      []information
+	propertyDists   []propDist
+	depiction       string
+	abstract        string
+	disambiguations []string
 }
 
 func genItem(item string, getPropDists bool, followDisambiguations bool) ItemData {
@@ -195,7 +196,7 @@ func genItem(item string, getPropDists bool, followDisambiguations bool) ItemDat
 		if strings.Contains(item, "_") {
 			words := strings.Split(item, "_")
 
-			//rand.Seed(time.Now().UnixNano())
+			rand.Seed(time.Now().UnixNano())
 			rand.Shuffle(len(words), func(i, j int) { words[i], words[j] = words[j], words[i] })
 
 			for _, w := range words {
@@ -234,6 +235,9 @@ func genItem(item string, getPropDists bool, followDisambiguations bool) ItemDat
 	// if no class and no properties, search for disambiguations and hypernyms
 	//if className[0] == "null" && len(props) == 0 {
 	//if len(props) == 0 && followDisambiguations {
+
+	var disambiguations = getDisambiguationsResAll(res)
+
 	if len(props) == 0 && className[0] == "null" && followDisambiguations {
 		fmt.Println("no class and no props, searching for disambiguations of " + item + "...")
 
@@ -244,8 +248,6 @@ func genItem(item string, getPropDists bool, followDisambiguations bool) ItemDat
 				return genItem(disambiguation, getPropDists)
 
 		*/
-
-		var disambiguations = getDisambiguationsResAll(res)
 
 		//TODO: shuffle disambiguations
 		rand.Shuffle(len(disambiguations), func(i, j int) { disambiguations[i], disambiguations[j] = disambiguations[j], disambiguations[i] })
@@ -270,7 +272,7 @@ func genItem(item string, getPropDists bool, followDisambiguations bool) ItemDat
 
 		fmt.Println("no disambiguations and hypernyms, trying to generate props for " + item + "...")
 		var p = getProps(res)
-		return ItemData{item, "null", "null", []info{}, []info{}, []info{}, p, getPropDistractor(p), getDepiction(res), getAbstract(res)}
+		return ItemData{item, "null", "null", []info{}, []info{}, []info{}, p, getPropDistractor(p), getDepiction(res), getAbstract(res), disambiguations}
 	}
 
 	// get superclass
@@ -305,6 +307,14 @@ func genItem(item string, getPropDists bool, followDisambiguations bool) ItemDat
 
 	if superClass[0] != "null" && cN != "null" {
 		siblingClasses = getSubClasses(superClass[0])
+
+		var s = make([]info, 0)
+		for _, sibling := range siblingClasses {
+			if cN != sibling.val {
+				s = append(s, sibling)
+			}
+		}
+		siblingClasses = s
 		//siblingClasses = getSiblingClasses(superClass[0], cN)
 	}
 
@@ -314,11 +324,11 @@ func genItem(item string, getPropDists bool, followDisambiguations bool) ItemDat
 		classSiblings = getClassMembers(cN)
 	}
 
-	return ItemData{item, cN, superClass[0], siblingClasses, classSiblings, superClassSiblings, props, p, getDepiction(res), getAbstract(res)}
+	return ItemData{item, cN, superClass[0], siblingClasses, classSiblings, superClassSiblings, props, p, getDepiction(res), getAbstract(res), disambiguations}
 }
 
 func genEmptyItem() ItemData {
-	return ItemData{"null", "null", "null", []info{}, []info{}, []info{}, []information{}, []propDist{}, "null", "null"}
+	return ItemData{"null", "null", "null", []info{}, []info{}, []info{}, []information{}, []propDist{}, "null", "null", []string{}}
 }
 
 func getProps(data []information) []information {
@@ -361,7 +371,7 @@ type propDist struct {
 func getPropDistractor(props []information) []propDist {
 
 	// get only one item
-	//rand.Seed(time.Now().UnixNano())
+	rand.Seed(time.Now().UnixNano())
 
 	p := rand.Perm(len(props))
 
@@ -396,7 +406,7 @@ func getPropDistractor(props []information) []propDist {
 	}
 
 	if len(superRes) > 0 {
-		//rand.Seed(time.Now().UnixNano())
+		rand.Seed(time.Now().UnixNano())
 		var idx = rand.Intn(len(superRes))
 		return []propDist{superRes[idx]}
 	} else {
@@ -903,7 +913,7 @@ func questionPropDist(d ItemData) Question {
 		var question = "The " + cleanURL(propD.property) + " of " + strings.ReplaceAll(d.item, "_", " ") + " is ..."
 		var answer = propD.answer
 
-		//rand.Seed(time.Now().UnixNano())
+		rand.Seed(time.Now().UnixNano())
 
 		dest := make([]info, len(propD.distractors))
 		perm := rand.Perm(len(propD.distractors))
@@ -934,7 +944,7 @@ func questionSiblingClasses(d ItemData) Question {
 	if d.siblingClasses != nil && len(d.siblingClasses) > 0 {
 
 		// shuffle siblings
-		//rand.Seed(time.Now().UnixNano())
+		rand.Seed(time.Now().UnixNano())
 
 		dest := make([]info, len(d.siblingClasses))
 		perm := rand.Perm(len(d.siblingClasses))
@@ -995,7 +1005,7 @@ func questionPropLiteral(d ItemData) Question {
 	if d.properties == nil || len(d.properties) == 0 {
 		return getEmptyQuestion()
 	} else {
-		//rand.Seed(time.Now().UnixNano())
+		rand.Seed(time.Now().UnixNano())
 		var idx = rand.Intn(len(d.properties))
 		var p = d.properties[idx]
 
@@ -1012,9 +1022,9 @@ func questionPropLiteral(d ItemData) Question {
 
 			for t < 5 && res == nil {
 
-				//fallback to all objects ignoring superclass
+				fmt.Println("fallback to all objects ignoring superclass!!!")
 				if t > 0 {
-					//rand.Seed(time.Now().UnixNano())
+					rand.Seed(time.Now().UnixNano())
 					idx = rand.Intn(len(d.properties))
 					p = d.properties[idx]
 				}
@@ -1036,7 +1046,24 @@ func questionPropLiteral(d ItemData) Question {
 
 		var answer = cleanURL(p.val.val)
 
-		//rand.Seed(time.Now().UnixNano())
+		var tmp = make([]info, 0)
+		for _, d := range res {
+
+			var isInSet = false
+			for _, i := range tmp {
+				if i.val == d.val {
+					isInSet = true
+				}
+			}
+
+			if d.val != p.val.val && !isInSet {
+				tmp = append(tmp, d)
+			}
+		}
+
+		res = tmp
+
+		rand.Seed(time.Now().UnixNano())
 
 		dest := make([]info, len(res))
 		perm := rand.Perm(len(res))
@@ -1072,6 +1099,10 @@ func genQuestion(item string) QuestionWrapper {
 	// timeout
 
 	var d = genItem(item, true, true)
+	if d.item != "null" {
+		item = d.item
+
+	}
 
 	var qs []Question = make([]Question, 1)
 	qs[0] = rollQuestion(d)
@@ -1083,24 +1114,105 @@ func genQuestion(item string) QuestionWrapper {
 		tries += 1
 	}
 
-	for isEmptyQuestion(qs[0]) && len(item) > 0 {
-		item = item[:len(item)-1]
+	if isEmptyQuestion(qs[0]) {
+		var disambi = d.disambiguations
+		rand.Shuffle(len(disambi), func(i, j int) {
+			disambi[i], disambi[j] = disambi[j], disambi[i]
+		})
 
-		d = genItem(item, true, true)
+		for _, dis := range disambi {
+			if dis == "null" {
+				continue
+			}
 
-		var tries = 0
-		for tries < 10 && isEmptyQuestion(qs[0]) {
+			d = genItem(dis, true, true)
+			if d.item != "null" {
+				item = d.item
+			}
+
 			qs[0] = rollQuestion(d)
-			tries += 1
+			var tries = 0
+			for tries < 10 && isEmptyQuestion(qs[0]) {
+				qs[0] = rollQuestion(d)
+				tries += 1
+			}
+
+			if !isEmptyQuestion(qs[0]) {
+				qs[0] = cleanQuestion(qs[0])
+				return QuestionWrapper{qs[0], d.depiction, d.abstract}
+			}
 		}
-		//qs = []Question{rollQuestion(genItem(item, true, true))}
-		//return []Question{getEmptyQuestion()}
+
+	} else {
+		qs[0] = cleanQuestion(qs[0])
+		return QuestionWrapper{qs[0], d.depiction, d.abstract}
 	}
 
-	//clean Question
-	qs[0] = cleanQuestion(qs[0])
+	// split words if _ inside
+	if strings.Contains(item, "_") {
+		words := strings.Split(item, "_")
 
-	return QuestionWrapper{qs[0], d.depiction, d.abstract}
+		rand.Seed(time.Now().UnixNano())
+		rand.Shuffle(len(words), func(i, j int) { words[i], words[j] = words[j], words[i] })
+
+		for _, w := range words {
+
+			strings.ReplaceAll(w, ",", "")
+
+			if strings.Contains(w, ")") || strings.Contains(w, "(") {
+				continue
+			}
+
+			var isStopword = false
+			for _, sw := range stopwordsItem {
+				if w == sw || w == strings.Title(sw) {
+					isStopword = true
+				}
+			}
+
+			if !isStopword {
+				return genQuestion(w)
+			}
+		}
+	}
+
+	if len(item) > 1 {
+		item = item[:len(item)-1]
+		return genQuestion(item)
+	} else {
+		var sryImage = "https://upload.wikimedia.org/wikipedia/commons/4/4e/Very_sorry.svg"
+		return QuestionWrapper{Question{"What is 1+1?", "2", "3", "4", "42"}, sryImage, "Sorry no question could be generated."}
+	}
+
+	/*
+
+		for isEmptyQuestion(qs[0]) && len(item) > 0 {
+
+			rand.Seed(time.Now().UnixNano())
+
+			if len(d.disambiguations) > 0 && d.disambiguations[0] != "null" {
+				// pick random disambiguation
+				rand.Shuffle(len(d.disambiguations), func(i, j int) {
+					d.disambiguations[i], d.disambiguations[j] = d.disambiguations[j], d.disambiguations[i]
+				})
+				item = d.disambiguations[0]
+			} else {
+				//shorten string
+				item = item[:len(item)-1]
+
+			}
+
+			d = genItem(item, true, true)
+
+			//qs = []Question{rollQuestion(genItem(item, true, true))}
+			//return []Question{getEmptyQuestion()}
+		}
+
+		//clean Question
+		qs[0] = cleanQuestion(qs[0])
+
+		return QuestionWrapper{qs[0], d.depiction, d.abstract}
+	*/
 }
 
 func cleanQuestion(q Question) Question {
@@ -1135,7 +1247,7 @@ func camelRegexp(str string) string {
 
 func rollQuestion(d ItemData) Question {
 
-	//rand.Seed(time.Now().UnixNano())
+	rand.Seed(time.Now().UnixNano())
 	var roll = rand.Intn(101)
 
 	if d.class != "null" && len(d.siblingClasses) > 0 {
