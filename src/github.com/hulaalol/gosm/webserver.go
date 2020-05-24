@@ -75,7 +75,7 @@ type QuestionJS struct {
 type QuizCrumb struct {
 	Name             string
 	CurrentPos       []LeafletEdge
-	DistractorEdges  []LeafletEdge
+	DistractorEdges  [][]LeafletEdge
 	DistanceToTarget uint32
 	Question         []QuestionJS
 	Img              string
@@ -113,7 +113,7 @@ func filterEdges(NWtlLat float32, NWtlLon float32, SEbrLat float32, SEbrLon floa
 
 }
 
-func convQuizCrumb2JSON(path []LeafletEdge, distance uint32, edgeOptions []LeafletEdge, qw QuestionWrapper) []byte {
+func convQuizCrumb2JSON(path []LeafletEdge, distance uint32, edgeOptions [][]LeafletEdge, qw QuestionWrapper) []byte {
 
 	//var qjs = make([]QuestionJS, len(questions))
 	//for idx, q := range questions {
@@ -183,6 +183,14 @@ func quizNav(w http.ResponseWriter, r *http.Request) {
 
 		var distance, path, edgeOptions = getQuizPath(start, finish, "car", "distance")
 
+		var radius uint16 = 1
+		for len(path) == 0 {
+			fmt.Println("webserver request failed to generate path...")
+			start = finalNodes[findClosestNode(start.lat, start.lon, radius*10, "car")]
+			radius += 1
+			distance, path, edgeOptions = getQuizPath(start, finish, "car", "distance")
+		}
+
 		if len(path) != 0 {
 
 			// reverse path
@@ -192,7 +200,7 @@ func quizNav(w http.ResponseWriter, r *http.Request) {
 			fmt.Println("currently in street: " + currentStreet)
 			var qw = genQuestion(currentStreet)
 			var coords = make([]LeafletEdge, 0)
-			var eOpts = make([]LeafletEdge, 0)
+			var eOpts = make([][]LeafletEdge, 0)
 
 			// build correct path until next junction
 			for idx, _ := range path {
@@ -203,23 +211,41 @@ func quizNav(w http.ResponseWriter, r *http.Request) {
 				}
 
 				if idx != len(path)-1 {
-					coords = append(coords, LeafletEdge{[]float32{finalNodes[path[idx].idx].lat, finalNodes[path[idx].idx].lon, finalNodes[path[idx+1].idx].lat, finalNodes[path[idx+1].idx].lon}, path[idx].streetname})
+					//coords = append(coords, LeafletEdge{[]float32{finalNodes[path[idx].idx].lat, finalNodes[path[idx].idx].lon, finalNodes[path[idx+1].idx].lat, finalNodes[path[idx+1].idx].lon}, path[idx].streetname})
+					coords = append(coords, LeafletEdge{[]float32{path[idx].lat, path[idx].lon, path[idx+1].lat, path[idx+1].lon}, path[idx].streetname})
+
 				}
 			}
 
 			// wrong turns if player fails to answer question
 			for idx, _ := range edgeOptions {
-				var k = true
-				// dont use edges present in the path!
-				for idx2, _ := range path {
-					if edgeOptions[idx].idx == path[idx2].idx {
-						k = false
+
+				var tmp = make([]LeafletEdge, 0)
+
+				for idx2, _ := range edgeOptions[idx] {
+
+					//var k = true
+					// dont use edges present in the path!
+					//for idx3, _ := range path {
+					//	if edgeOptions[idx][idx2].idx == path[idx3].idx {
+					//		k = false
+					//	}
+					//}
+					//if k {
+
+					if idx2 != len(edgeOptions[idx])-1 {
+						tmp = append(tmp, LeafletEdge{[]float32{edgeOptions[idx][idx2].lat, edgeOptions[idx][idx2].lon, edgeOptions[idx][idx2+1].lat, edgeOptions[idx][idx2+1].lon}, edgeOptions[idx][idx2].streetname})
+						//tmp = append(tmp, LeafletEdge{[]float32{finalNodes[edgeOptions[idx][idx2].idx].lat, finalNodes[edgeOptions[idx][idx2].idx].lon, finalNodes[edgeOptions[idx][idx2+1].idx].lat, finalNodes[edgeOptions[idx][idx2+1].idx].lon}, edgeOptions[idx][idx2].streetname})
+
 					}
-				}
-				if k {
-					eOpts = append(eOpts, LeafletEdge{[]float32{finalNodes[path[0].idx].lat, finalNodes[path[0].idx].lon, finalNodes[edgeOptions[idx].idx].lat, finalNodes[edgeOptions[idx].idx].lon}, edgeOptions[idx].streetname})
+
+					//eOpts = append(eOpts, LeafletEdge{[]float32{finalNodes[path[0].idx].lat, finalNodes[path[0].idx].lon, finalNodes[edgeOptions[idx].idx].lat, finalNodes[edgeOptions[idx].idx].lon}, edgeOptions[idx].streetname})
+
+					//}
 
 				}
+				eOpts = append(eOpts, tmp)
+
 			}
 
 			var answer = convQuizCrumb2JSON(coords, distance, eOpts, qw)
@@ -228,6 +254,7 @@ func quizNav(w http.ResponseWriter, r *http.Request) {
 			w.Write(answer)
 
 		} else {
+
 			fmt.Println("webserver request failed to generate path...")
 		}
 

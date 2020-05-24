@@ -382,13 +382,21 @@ function answerQuestion(e){
         var startC = globalQuestion.cppl._latlngs[0];
         var latlng = globalQuestion.cppl._latlngs[endOfPath-1][1];
     }else{
-        //incorrect answer
-        var wppl= globalQuestion.wppls[Math.floor(Math.random() * globalQuestion.wppls.length)];
-        wppl.addTo(mymap);
 
-        var endOfPath = wppl._latlngs.length;
-        var startC = wppl._latlngs[0];
-        var latlng = wppl._latlngs[endOfPath-1][1];
+        if(globalQuestion.wppls.length == 0){
+            var wppl = globalQuestion.cppl;
+            wppl.options.color = "red";
+        }else{
+            //incorrect answer
+            var wppl= globalQuestion.wppls[Math.floor(Math.random() * globalQuestion.wppls.length)];
+        }
+
+            wppl.addTo(mymap);
+
+            var endOfPath = wppl._latlngs.length;
+            var startC = wppl._latlngs[0];
+            var latlng = wppl._latlngs[endOfPath-1][1];
+             
     }
 
     // update score by adding distance of edge traveled
@@ -551,10 +559,15 @@ function quizNav(){
 
                 var wppls = [];
                 for(i =0; i< json.DistractorEdges.length; i++){
-                    var wrongPath = [];
-                    var edge =json.DistractorEdges[i].C;
-                    wrongPath.push([[edge[0], edge[1]], [edge[2], edge[3]]]);
 
+                    var wrongPath = [];
+
+                    for(j=0; j< json.DistractorEdges[i].length; j++){
+                        var edge =json.DistractorEdges[i][j].C;
+                        wrongPath.push([[edge[0], edge[1]], [edge[2], edge[3]]]);
+
+
+                    }
                     var wppl = L.polyline(wrongPath, {color:"red",interactive: false});
                     wppl.id = "dE"+i;
                     //wppl.addTo(mymap);

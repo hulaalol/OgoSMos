@@ -127,14 +127,20 @@ func getEdgesRec(node SNode, intermediate []SNode, streetName string) Edge {
 	var eOutIdxEnd = finalOffsetsOut[node.idx+1]
 	var eOut = finalEdgesOut[eOutIdxStart:eOutIdxEnd]
 
-	for _, e := range eOut {
+	/*for _, e := range eOut {
 		if e.streetname != streetName {
 			return Edge{0, 0, 0, 0, 0, 0, "finish"}
 		}
 
 	}
+	*/
 
 	for _, e := range eOut {
+
+		//if e.streetname != streetName {
+		//	fmt.Println("skipping edge with name " + e.streetname)
+		//	continue
+		//}
 
 		var isAlreadyInResult = false
 		for _, ir := range intermediate {
@@ -152,7 +158,7 @@ func getEdgesRec(node SNode, intermediate []SNode, streetName string) Edge {
 
 }
 
-func getEdges(node Node, path []SNode) []SNode {
+func getEdges(node Node, path []SNode, streetName string) []SNode {
 	var eOutIdxStart = finalOffsetsOut[node.idx]
 	var eOutIdxEnd = finalOffsetsOut[node.idx+1]
 	var eOut = finalEdgesOut[eOutIdxStart:eOutIdxEnd]
@@ -160,25 +166,48 @@ func getEdges(node Node, path []SNode) []SNode {
 
 	for _, e := range eOut {
 
+		if e.streetname != streetName {
+			continue
+		}
+
 		var lat = finalNodes[e.n2idx].lat
 		var lon = finalNodes[e.n2idx].lon
 		var skip = false
-		for _, n := range path {
+
+		if path[len(path)-1].lat == lat && path[len(path)-1].lon == lon {
+			fmt.Println("skipping first edge of path!")
+			skip = true
+		}
+		/*for _, n := range path {
 
 			if n.lat == lat && n.lon == lon {
 				skip = true
 			}
 
 		}
+		*/
 
 		if !skip {
 			var newNode = SNode{e.n2idx, finalNodes[e.n2idx].lat, finalNodes[e.n2idx].lon, e.streetname}
 
-			result = append(result, newNode)
+			//result = append(result, newNode)
 
 			var follow = getEdgesRec(newNode, result, e.streetname)
 
-			for follow.streetname != "finish" {
+			// distance follow node  / node > 100m
+			// dont go back
+			var dd = 0.0
+			var ddLast = 0.0
+
+			for follow.streetname != "finish" && (dd < 100.0) {
+
+				ddLast = dd
+				dd = geoDistancePrecision(node.lat, node.lon, finalNodes[follow.n2idx].lat, finalNodes[follow.n2idx].lon)
+
+				if dd < ddLast {
+					break
+				}
+
 				var followNode = SNode{follow.n2idx, finalNodes[follow.n2idx].lat, finalNodes[follow.n2idx].lon, follow.streetname}
 				result = append(result, followNode)
 				follow = getEdgesRec(followNode, result, e.streetname)
@@ -188,9 +217,31 @@ func getEdges(node Node, path []SNode) []SNode {
 	return result
 }
 
-func getQuizPath(origin Node, destiny Node, mode string, metric string) (uint32, []SNode, []SNode) {
+func getEdgesOpts(node Node, path []SNode) [][]SNode {
+
+	var result = make([][]SNode, 0, 0)
+
+	var eOutIdxStart = finalOffsetsOut[node.idx]
+	var eOutIdxEnd = finalOffsetsOut[node.idx+1]
+	var eOut = finalEdgesOut[eOutIdxStart:eOutIdxEnd]
+
+	for _, e := range eOut {
+		var n = finalNodes[e.n2idx]
+		var e1 = getEdges(n, path, e.streetname)
+		if len(e1) > 0 {
+			e1 = append([]SNode{SNode{node.idx, node.lat, node.lon, e.streetname}}, e1...)
+			//e1 = append(e1, SNode{node.idx, node.lat, node.lon, e.streetname})
+			result = append(result, e1)
+		}
+	}
+	return result
+
+}
+
+func getQuizPath(origin Node, destiny Node, mode string, metric string) (uint32, []SNode, [][]SNode) {
 	var distance, path = getPath(origin, destiny, mode, metric)
-	var edgeOptions = getEdges(origin, path)
+	//var edgeOptions = getEdges(origin, path)
+	var edgeOptions = getEdgesOpts(origin, path)
 	return distance, path, edgeOptions
 }
 
