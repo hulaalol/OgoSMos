@@ -13,7 +13,7 @@ import (
 	"github.com/valyala/fastjson"
 )
 
-var stopwords = [...]string{"'s", " street", " road", " Highway", "highway ", "way", " avenue", " drive", " lane", " circus", " Row", "the ", " place"}
+var stopwords = [...]string{"'s", " street", " road", " Highway", "highway ", "way", " avenue", " drive", " lane", " circus", " Row", "the ", " place", "grove", "pavement"}
 
 //var stopwords = [...]string{"'s", " street", " road", " highway", "highway ", "way", " avenue", "strait", "drive", " lane", "grove", "gardens", "place", "circus", "crescent", "bypass", "close", "square", "hill", "mews", "vale", "rise", " Row", "mead", "wharf", "walk", "the "}
 var stopwordsItem = [...]string{"great", "the", "bridge", "high", "st", "court", "mews", "square", "end", "new", "alley", "upper", "lower"}
@@ -23,7 +23,7 @@ var syllables = [...]string{"er"}
 var randlim = "%0D%0A%09%09ORDER+BY+RAND%28%29%0D%0A%09%09limit+100"
 
 var propBlacklist = [...]string{"rdf-syntax-ns#type", "wikiPageRevisionID", "owl#sameAs", "rdf-schema#comment", "rdf-schema#label", "#wasDerivedFrom", "hypernym", "depiction", "wikiPageExternalLink", "wikiPageID", "subject", "isPrimaryTopicOf", "thumbnail", "abstract",
-	"caption", "commons", "seconded", "width", "expiry", "wikititle", "list", "gridReference", "pushLabelPosition", "small", "urlname", "annotFontSize", "/property/image", "property/align", "property/footnotes", "property/footer", "imageCaption", "labelPosition", "locatorMap", "popRefCbs", "differentFrom", "popRefName", "rdf-schema#seeAlso", "property/longEw", "foaf/0.1/homepage", "property/name", "/foaf/0.1/name", "ontology/picture", "ontology/type", "dbpedia.org/property/id", "property/imageSize", "/property/title", "property/wordnet_type", "/property/note", "/property/servingSize", "/property/sourceUsda", "staticImage", "/georss/point", "/geo/wgs84", "/ontology/wikiPageDisambiguates"}
+	"caption", "commons", "seconded", "width", "wikt", "alt", "expiry", "wikititle", "list", "gridReference", "pushLabelPosition", "small", "urlname", "annotFontSize", "/property/image", "property/align", "property/footnotes", "property/footer", "imageCaption", "labelPosition", "locatorMap", "popRefCbs", "differentFrom", "popRefName", "rdf-schema#seeAlso", "property/longEw", "foaf/0.1/homepage", "property/name", "/foaf/0.1/name", "ontology/picture", "ontology/type", "dbpedia.org/property/id", "property/imageSize", "/property/title", "property/wordnet_type", "/property/note", "/property/servingSize", "/property/sourceUsda", "staticImage", "/georss/point", "/geo/wgs84", "/ontology/wikiPageDisambiguates"}
 
 type information struct {
 	typ info
@@ -195,7 +195,7 @@ func genItem(item string, getPropDists bool, followDisambiguations bool) ItemDat
 		if strings.Contains(item, "_") {
 			words := strings.Split(item, "_")
 
-			rand.Seed(time.Now().UnixNano())
+			//rand.Seed(time.Now().UnixNano())
 			rand.Shuffle(len(words), func(i, j int) { words[i], words[j] = words[j], words[i] })
 
 			for _, w := range words {
@@ -248,6 +248,7 @@ func genItem(item string, getPropDists bool, followDisambiguations bool) ItemDat
 		var disambiguations = getDisambiguationsResAll(res)
 
 		//TODO: shuffle disambiguations
+		rand.Shuffle(len(disambiguations), func(i, j int) { disambiguations[i], disambiguations[j] = disambiguations[j], disambiguations[i] })
 
 		for _, d := range disambiguations {
 			if d != "null" {

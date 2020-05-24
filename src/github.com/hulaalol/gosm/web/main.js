@@ -517,9 +517,9 @@ function setQuestion(question){
 
     for(var i=0;i<aIdx.length;i++){
         document.getElementById("a"+aIdx[i]).innerHTML = answers[i];
-        document.getElementById("a"+aIdx[i]).fontWeight="normal";
+        //document.getElementById("a"+aIdx[i]).fontWeight="normal";
     }
-    document.getElementById("a"+aIdx[0]).style.fontWeight="bold";
+    //document.getElementById("a"+aIdx[0]).style.fontWeight="bold";
 
     globalQuestion = question;
     globalQuestion.AnswerID = "a"+aIdx[0];
