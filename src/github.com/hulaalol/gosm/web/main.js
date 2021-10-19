@@ -1,3 +1,6 @@
+//config
+var urlPrefix = "/quiznav" //used for apache reverse proxy
+
 var markerSet = false;
 var marker1;
 var marker2;
@@ -44,7 +47,7 @@ async function initMap(map){
 
     let promise = new Promise((resolve, reject) => {
         var xhr = new XMLHttpRequest();
-        var url = "/";
+        var url = urlPrefix+"/";
         xhr.open("POST", url, true);
         xhr.setRequestHeader("Content-Type", "application/json");
     
@@ -99,7 +102,7 @@ async function updateMap(map, bounds, zoomLevel){
 
     let promise = new Promise((resolve, reject) => {
         var xhr = new XMLHttpRequest();
-        var url = "/";
+        var url = urlPrefix+"/";
         xhr.open("POST", url, true);
         xhr.setRequestHeader("Content-Type", "application/json");
     
@@ -287,7 +290,7 @@ function sendMarker(marker,type){
     return new Promise((resolve,reject) => {
         activateLoader();
         var xhr = new XMLHttpRequest();
-        var url = "/marker";
+        var url = urlPrefix+"/marker";
         xhr.open("POST", url, true);
         xhr.setRequestHeader("Content-Type", "application/json");
         
@@ -529,7 +532,7 @@ function quizNav(){
         document.getElementById("mapid").setAttribute("class", "locked");
 
         var xhr = new XMLHttpRequest();
-        var url = "/quizNav";
+        var url = urlPrefix+"/quizNav";
         xhr.open("POST", url, true);
         xhr.setRequestHeader("Content-Type", "application/json");
     
@@ -642,7 +645,7 @@ function calcRoute(){
         document.getElementById("mapid").setAttribute("class", "locked");
 
         var xhr = new XMLHttpRequest();
-        var url = "/dijkstra";
+        var url = urlPrefix+"/dijkstra";
         xhr.open("POST", url, true);
         xhr.setRequestHeader("Content-Type", "application/json");
     
